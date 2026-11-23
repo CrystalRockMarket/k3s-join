@@ -54,6 +54,20 @@ fi
 if grep -q '@".' install.ps1; then bad "no text after a here-string header"; else ok "no text after a here-string header"; fi
 if grep -q 'bash -c \"\$(echo' install.ps1; then bad "no nested-quote base64 runner"; else ok "no nested-quote base64 runner"; fi
 
+head_ "shell portability"
+# dash has no pipefail; the checker must hand back the bash command, not crash.
+out="$(cat install.sh | sh -s -- --help 2>&1 || true)"
+case "$out" in
+  *"under bash, not sh"*) ok "piped to sh gives the bash command" ;;
+  *) bad "piped to sh gives the bash command" ;;
+esac
+case "$out" in
+  *"Illegal option"*) bad "no raw dash error" ;;
+  *) ok "no raw dash error" ;;
+esac
+expect "join.js uses bash for linux" grep -q "install.sh | sudo bash -s" site/join/join.js
+expect "join.js uses bash for macos" grep -q "install-macos.sh | bash -s" site/join/join.js
+
 head_ "join code parsing"
 TOKEN="K10abcdefghijklmnopqrstuvwxyz0123456789::server:0123456789abcdef"
 TSKEY="tskey-auth-kTESTKEY123-CNTRL"

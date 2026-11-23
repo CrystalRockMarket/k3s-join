@@ -7,6 +7,16 @@
 #
 # Undo:  ./install-macos.sh --uninstall   (deletes the VM, leaves Lima installed)
 
+if [ -z "${BASH_VERSION:-}" ]; then
+  if [ -n "${0:-}" ] && [ -r "$0" ] && [ "$0" != "sh" ] && [ "$0" != "-sh" ]; then
+    exec bash "$0" "$@"
+  fi
+  printf '%s\n' \
+    "This installer must run under bash, not sh:" \
+    "  curl -fsSL https://k3s.kituwa.com/install-macos.sh | bash -s -- --code 'k3s1.…'" >&2
+  exit 1
+fi
+
 set -euo pipefail
 
 VERSION="1.0.0"

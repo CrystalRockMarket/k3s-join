@@ -30,14 +30,14 @@ You need a join code from the cluster operator (one line, starts with `k3s1.`).
 **Linux** (systemd, amd64/arm64/armv7):
 
 ```bash
-curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --code 'k3s1.…'
+curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --code 'k3s1.…'
 ```
 
 **macOS** — k3s is Linux-only, so this creates a small Linux VM with Lima and
 joins the VM:
 
 ```bash
-curl -fsSL https://k3s.kituwa.com/install-macos.sh | sh -s -- --code 'k3s1.…'
+curl -fsSL https://k3s.kituwa.com/install-macos.sh | bash -s -- --code 'k3s1.…'
 ```
 
 **Windows** — WSL2 with systemd, then the same Linux installer inside it. Run in
@@ -50,7 +50,7 @@ irm https://k3s.kituwa.com/install.ps1 | iex
 Leave any time:
 
 ```bash
-curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --uninstall --remove-tailscale
+curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --uninstall --remove-tailscale
 ```
 
 ## Requirements

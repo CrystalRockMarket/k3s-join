@@ -107,13 +107,13 @@
     </div>
 
     <div class="panel" id="panel-linux" role="tabpanel" aria-labelledby="tab-linux">
-      <pre><code>curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --code 'k3s1.…'</code></pre>
+      <pre><code>curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --code 'k3s1.…'</code></pre>
       <p class="note">Any modern systemd distribution on amd64, arm64 or armv7.
         Needs 2 GB RAM and 8 GB free on <code>/var</code>.</p>
     </div>
 
     <div class="panel" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac" hidden>
-      <pre><code>curl -fsSL https://k3s.kituwa.com/install-macos.sh | sh -s -- --code 'k3s1.…'</code></pre>
+      <pre><code>curl -fsSL https://k3s.kituwa.com/install-macos.sh | bash -s -- --code 'k3s1.…'</code></pre>
       <p class="note">k3s is Linux-only, so this creates a small Linux VM with Lima
         and joins the VM. Apple silicon and Intel. The VM is created with no host
         mounts, so it cannot see your home folder.</p>
@@ -133,7 +133,7 @@
     </div>
 
     <p class="note">Leaving is one command:
-      <code>curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --uninstall --remove-tailscale</code>
+      <code>curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --uninstall --remove-tailscale</code>
     </p>
   </section>
 

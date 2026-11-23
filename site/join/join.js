@@ -76,10 +76,10 @@
 
   function commandFor(platform, code) {
     if (platform === "linux") {
-      return "curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --code '" + code + "'";
+      return "curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --code '" + code + "'";
     }
     if (platform === "macos") {
-      return "curl -fsSL https://k3s.kituwa.com/install-macos.sh | sh -s -- --code '" + code + "'";
+      return "curl -fsSL https://k3s.kituwa.com/install-macos.sh | bash -s -- --code '" + code + "'";
     }
     return "$env:KITUWA_JOIN_CODE='" + code + "'; irm https://k3s.kituwa.com/install.ps1 | iex";
   }
@@ -112,9 +112,6 @@
           ' small" data-copy="' + platform + '">Copy the command</button>' +
           "</details>";
       }).join("") +
-      '<details class="raw-code"><summary>Or just the code, for a machine where you already run the installer</summary>' +
-      "<pre><code id=\"join-code\">" + esc(data.code) + "</code></pre>" +
-      '<button type="button" class="btn small" id="copy-code">Copy only the code</button></details>' +
       '<p class="form-status good">That is everything. The machine appears on ' +
       '<a href="/points/">the points chart</a> by name once it is idle.</p>';
     form.parentNode.insertBefore(panel, form.nextSibling);
@@ -131,9 +128,6 @@
       button.addEventListener("click", function () {
         copy(commandFor(button.getAttribute("data-copy"), data.code), button);
       });
-    });
-    panel.querySelector("#copy-code").addEventListener("click", function () {
-      copy(data.code, this);
     });
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
   }

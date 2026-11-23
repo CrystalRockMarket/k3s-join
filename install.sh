@@ -15,6 +15,19 @@
 # It never touches your home directory, never installs a package you did not
 # ask for, and can be undone with --uninstall.
 
+# The piped form is `| sudo bash -s --`, but people type `| sudo sh` out of habit.
+# dash has no pipefail, and failing with "Illegal option -o pipefail" explains
+# nothing. Hand back the exact command instead.
+if [ -z "${BASH_VERSION:-}" ]; then
+  if [ -n "${0:-}" ] && [ -r "$0" ] && [ "$0" != "sh" ] && [ "$0" != "-sh" ]; then
+    exec bash "$0" "$@"
+  fi
+  printf '%s\n' \
+    "This installer must run under bash, not sh:" \
+    "  curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --code 'k3s1.…'" >&2
+  exit 1
+fi
+
 set -euo pipefail
 
 VERSION="1.0.0"
