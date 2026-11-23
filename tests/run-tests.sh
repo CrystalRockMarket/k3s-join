@@ -110,6 +110,10 @@ if [ -f site/index.html ]; then
   expect "join form exists" test -f site/join/index.html
   expect "join form posts to the intake" grep -q "/api/v1/forms/k3s-join" site/join/join.js
   expect "join form has a honeypot" grep -q '_hp' site/join/index.html
+  # Regression: the response was once parsed twice, which threw
+  # "res.json is not a function" in the browser.
+  counts=$(grep -c "res.json().catch" site/join/join.js || true)
+  if [ "$counts" = "1" ]; then ok "join.js parses each response once"; else bad "join.js parses each response once (found $counts)"; fi
   expect "join form asks for a name" grep -q 'for="name"' site/join/index.html
   expect "hero links the join form" grep -q 'href="/join/"' site/index.html
   expect "nginx proxies the intake" grep -q "api/v1/forms/" deploy/k3s-kituwa.conf

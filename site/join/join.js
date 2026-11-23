@@ -174,19 +174,6 @@
         }
         throw new Error(data.error || "Something went wrong.");
       });
-    }).then(function (res) {
-      return res.json().catch(function () { return {}; }).then(function (data) {
-        if (res.ok && data.ok) { return data; }
-        if (res.status === 403) {
-          // The token cookie was refused (expired or a fresh session).
-          token = "";
-          throw new Error("Please press send once more.");
-        }
-        if (res.status === 429) {
-          throw new Error("Too many requests from this network. Try again later.");
-        }
-        throw new Error(data.error || "Something went wrong.");
-      });
     }).then(function (data) {
       if (data && data.done) { return; }
       form.hidden = true;
