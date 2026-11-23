@@ -91,6 +91,11 @@
     return "linux";
   }
 
+  function nodeCommand(code) {
+    return "curl -fsSL https://k3s.kituwa.com/cli/cluster.mjs -o /tmp/kc.mjs && " +
+           "sudo node /tmp/kc.mjs agent --code '" + code + "'";
+  }
+
   function showCode(data) {
     form.hidden = true;
     var mine = detectOS();
@@ -110,10 +115,15 @@
           "<pre><code>" + esc(commandFor(platform, data.code)) + "</code></pre>" +
           '<button type="button" class="btn ' + (i === 0 ? "primary" : "") +
           ' small" data-copy="' + platform + '">Copy the command</button>' +
+          '<p class="node-alt"><span>Node 18+ installed?</span> A nicer installer, same job:<br>' +
+          "<code>" + esc(nodeCommand(data.code)) + "</code></p>" +
           "</details>";
       }).join("") +
       '<p class="form-status good">That is everything. The machine appears on ' +
-      '<a href="/points/">the points chart</a> by name once it is idle.</p>';
+      '<a href="/points/">the points chart</a> by name once it is idle.</p>' +
+      (data.renew ? '<p class="note">Code expired before you got to it? ' +
+        '<button type="button" class="btn small" id="renew-code">Get a new code</button> ' +
+        '— same machine, no form to fill in.</p>' : '');
     form.parentNode.insertBefore(panel, form.nextSibling);
     status.textContent = "";
 
@@ -124,6 +134,28 @@
         navigator.clipboard.writeText(text).then(done, function () {});
       }
     }
+    var renewButton = panel.querySelector("#renew-code");
+    if (renewButton && data.renew) {
+      renewButton.addEventListener("click", function () {
+        renewButton.disabled = true;
+        renewButton.textContent = "Minting…";
+        fetch("/api/v1/enroll/renew", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ renew: data.renew })
+        }).then(function (res) { return res.json(); }).then(function (next) {
+          if (!next || !next.ok || !next.code) { throw new Error(next && next.error || "could not renew"); }
+          panel.remove();
+          showCode(next);
+        }).catch(function (err) {
+          renewButton.disabled = false;
+          renewButton.textContent = "Get a new code";
+          renewButton.insertAdjacentHTML("afterend",
+            ' <span class="bad">' + (err.message || "failed") + '</span>');
+        });
+      });
+    }
+
     Array.prototype.forEach.call(panel.querySelectorAll("[data-copy]"), function (button) {
       button.addEventListener("click", function () {
         copy(commandFor(button.getAttribute("data-copy"), data.code), button);

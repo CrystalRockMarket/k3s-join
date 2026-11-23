@@ -129,6 +129,7 @@ NODE_NAME=""
 TAINT=""
 LABEL=""
 ROLE=""
+RENEW=""
 
 decode_code() {
   local raw="$1" payload
@@ -157,6 +158,7 @@ decode_code() {
   TAINT="${TAINT:-$(json_field taint)}"
   LABEL="${LABEL:-$(json_field label)}"
   ROLE="${ROLE:-$(json_field role)}"
+  RENEW="${RENEW:-$(json_field renew)}"
   if [ -z "$NODE_NAME" ] && [ -n "$node_hint" ]; then NODE_NAME="$node_hint"; fi
 }
 
@@ -295,6 +297,28 @@ write_config() {
   ok "$CONFIG_FILE and $TOKEN_FILE written 0600"
 }
 
+renew_join_code() {
+  # Ask the intake for a fresh token using the ticket inside the code. One
+  # automatic step: the person never sees the form again.
+  [ -n "$RENEW" ] || return 1
+  local reply code_payload new_token
+  reply="$(curl -sS -m 20 -X POST https://k3s.kituwa.com/api/v1/enroll/renew \
+    -H 'Content-Type: application/json' \
+    --data "$(printf '{"renew":"%s"}' "$RENEW")" 2>/dev/null)" || return 1
+  case "$reply" in *'"ok":true'*) ;; *) return 1 ;; esac
+  code_payload="${reply#*\"code\":\"}"
+  code_payload="${code_payload%%\"*}"
+  [ -n "$code_payload" ] || return 1
+  decode_code "$code_payload"
+  new_token="$TOKEN"
+  [ -n "$new_token" ] || return 1
+  umask 077
+  printf '%s\n' "$new_token" > "$TOKEN_FILE"
+  chmod 0600 "$TOKEN_FILE"
+  TOKEN="$new_token"
+  return 0
+}
+
 install_k3s() {
   if [ -x /usr/local/bin/k3s ] && [ -f /etc/systemd/system/k3s-agent.service ]; then
     step "k3s is already installed on this machine"
@@ -341,7 +365,7 @@ wait_for_agent() {
   say "  three minutes: the agent registers with the cluster, gets its certificates,"
   say "  and starts the container runtime. This window stays quiet on purpose — it"
   say "  is not stuck."
-  local waited=0 line last=""
+  local waited=0 line last="" RENEWED=0
   while [ "$waited" -lt 240 ]; do
     if systemctl is-active --quiet k3s-agent && ! systemctl is-failed --quiet k3s-agent 2>/dev/null; then
       printf '\r  %s\n' "$(printf '%*s' 48 '')"
@@ -355,6 +379,17 @@ wait_for_agent() {
       # A dead token fails fast; do not sit here for four minutes pretending.
       if [ "$(journalctl -u k3s-agent --since '-2 min' --no-pager 2>/dev/null | grep -ciE 'invalid bearer token|not authorized')" -ge 2 ]; then
         printf '\r  %s\n' "$(printf '%*s' 40 '')"
+        if [ "$RENEWED" = "0" ]; then
+          RENEWED=1
+          step "the cluster rejected the code — renewing it automatically"
+          if renew_join_code; then
+            ok "new token written; restarting the agent (no need to sign up again)"
+            systemctl start --no-block k3s-agent 2>/dev/null || true
+            wait_for_agent_again=1
+            continue
+          fi
+          warn "the code could not be renewed automatically"
+        fi
         say ""
         die "the cluster rejected this machine's token (401 Not authorized).
 
