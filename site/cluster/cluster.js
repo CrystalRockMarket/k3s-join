@@ -52,6 +52,7 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d) { return; }
+        nextIn = 15;
         document.getElementById("s-nodes").textContent = d.active_nodes + " / " + d.nodes.length;
         document.getElementById("s-total").textContent = fmt(d.total_points);
         document.getElementById("s-24h").textContent = fmt(d.points_10m);
@@ -70,6 +71,12 @@
         }).join("");
       }).catch(function () {});
   }
+  var nextIn = 15;
+  setInterval(function () {
+    nextIn = nextIn > 0 ? nextIn - 1 : 0;
+    var el = document.getElementById("s-next");
+    if (el) { el.textContent = nextIn > 0 ? "next update in " + nextIn + "s" : "updating…"; }
+  }, 1000);
   poll();
   setInterval(poll, 5000);
 })();

@@ -539,3 +539,5 @@ tbody td:first-child { color: var(--ink); }
 
 .row-new { animation: joinflash 2s ease-out 1; }
 @keyframes joinflash { from { background: rgba(184,242,74,.22); } to { background: transparent; } }
+
+.stat-sub { font-family: var(--mono); font-size: .64rem; color: var(--soft); letter-spacing: .04em; }
