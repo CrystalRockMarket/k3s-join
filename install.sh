@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -69,7 +69,7 @@ banner() {
   fg256 27 '  ██║  ██╗██║   ██║   ╚██████╔╝╚███╔███╔╝██║  ██║'; printf '\n'
   fg256 21 '  ╚═╝  ╚═╝╚═╝   ╚═╝    ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═╝'; printf '\n'
   printf '\n'
-  printf '  %s%s\n' "${C_HEAD}C L U S T E R${C_RESET}" "${C_DIM}  ·  k3s worker, one command${C_RESET}"
+  printf '  %s%s\n' "${C_HEAD}KITUWA CLUSTER${C_RESET} ${C_OK}v${VERSION}${C_RESET}" "${C_DIM}  ·  k3s worker, one command${C_RESET}"
   [ "${DRY_RUN:-0}" = "1" ] && run_suffix="  ·  DRY RUN" || run_suffix=""
   printf '  %s\n' "${C_DIM}v${VERSION}  ·  ${host}  ·  $(uname -s)/${arch}${run_suffix}${C_RESET}"
   printf '  %s\n\n' "${C_DIM}───────────────────────────────────────────────${C_RESET}"
@@ -176,30 +176,24 @@ diagnose() {
   say ""
   say "  Sending this to the Kituwa inbox (high priority)…"
 
-  if ! have python3; then
-    say "  (python3 is not installed, so automatic sending is skipped — the lines above are all I need)"
-    rm -f "$tmp"
-    return 1
-  fi
   jar="$(mktemp)"
   tok="$(curl -sS -c "$jar" -m 15 https://k3s.kituwa.com/api/v1/forms/k3s-join/token 2>/dev/null \
     | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
-  if [ -n "$tok" ]; then
-    body="$(BODY_FILE="$tmp" python3 -c '
-import json, os
-text = open(os.environ["BODY_FILE"]).read()[:3500]
-print(json.dumps({
-    "name": "join-diagnostic",
-    "email": "diagnostic@kituwa.com",
-    "body": text,
-    "machine": "diagnostic",
-    "reference": "diag-%d" % (abs(hash(text)) % 10**10),
-}))' 2>/dev/null)"
-    if [ -n "$body" ]; then
-      id="$(curl -sS -b "$jar" -m 20 -X POST https://k3s.kituwa.com/api/v1/forms/k3s-join \
-        -H 'Origin: https://k3s.kituwa.com' -H "X-Kituwa-Form-Token: $tok" \
-        -H 'Content-Type: application/json' --data "$body" 2>/dev/null \
-        | sed -n 's/.*"id":\([0-9]*\).*/\1/p')"
+  if [ -z "$tok" ]; then
+    say "  could not get a form token (no network to k3s.kituwa.com?)"
+  else
+    # JSON-escape the summary without needing python.
+    body="$(sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/ /g' "$tmp" | tr -d '\r' | tr '\n' ' ' | cut -c1-3000)"
+    body="{\"name\":\"join-diagnostic\",\"email\":\"diagnostic@kituwa.com\",\"machine\":\"diagnostic\",\"reference\":\"diag-$(date +%s)\",\"body\":\"$body\"}"
+    code="$(curl -sS -b "$jar" -m 20 -X POST https://k3s.kituwa.com/api/v1/forms/k3s-join \
+      -H 'Origin: https://k3s.kituwa.com' -H "X-Kituwa-Form-Token: $tok" \
+      -H 'Content-Type: application/json' --data "$body" -o /tmp/kit-diag.out -w '%{http_code}' 2>/dev/null || echo 000)"
+    id="$(sed -n 's/.*"id":\([0-9]*\).*/\1/p' /tmp/kit-diag.out 2>/dev/null | head -1)"
+    rm -f /tmp/kit-diag.out
+    if [ -n "$id" ]; then
+      say "  Sent. Reference #$id — read from the inbox, nothing to copy."
+    else
+      say "  Upload returned HTTP ${code:-000}; the summary above is all I need."
     fi
   fi
   rm -f "$jar" "$tmp"
@@ -738,6 +732,20 @@ while [ $# -gt 0 ]; do
     *) die "unknown option: $1 (try --help)" ;;
   esac
 done
+
+# Every failure sends its state to the Kituwa inbox, so the script improves from
+# real runs instead of guesses. Dry runs and --diagnose itself are excluded.
+DIAG_RAN=0
+on_exit_report() {
+  rc=$?
+  if [ "$rc" -ne 0 ] && [ "$DRY_RUN" != "1" ] && [ "$DIAG_RAN" = "0" ] && [ "$DO_DIAGNOSE" = "0" ]; then
+    DIAG_RAN=1
+    say ""
+    warn "sending the failure detail to Kituwa automatically…"
+    diagnose || true
+  fi
+}
+trap on_exit_report EXIT
 
 if [ "$DO_DIAGNOSE" = "1" ]; then
   banner
