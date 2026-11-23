@@ -296,7 +296,15 @@ write_config() {
 }
 
 install_k3s() {
+  if [ -x /usr/local/bin/k3s ] && [ -f /etc/systemd/system/k3s-agent.service ]; then
+    step "k3s is already installed on this machine"
+    ok "keeping the binary; only the join settings change"
+    run systemctl restart k3s-agent || true
+    return 0
+  fi
   step "installing k3s $K3S_VERSION (official installer, sha256-verified)"
+  say "  This downloads about 70 MB, checks it against the published sha256, then"
+  say "  creates the systemd service that runs the agent on every boot."
   local tmp
   tmp="$(mktemp -d)"
   if [ "$DRY_RUN" = "1" ]; then
@@ -304,36 +312,72 @@ install_k3s() {
     rm -rf "$tmp"
     return 0
   fi
+  say "  downloading the installer script…"
   curl -fsSL "$K3S_INSTALL_URL" -o "$tmp/install.sh" || die "could not download the k3s installer"
+  say "  downloading and verifying the k3s binary — this is the slow part, 30–90 s on a normal connection"
   INSTALL_K3S_VERSION="$K3S_VERSION" \
   INSTALL_K3S_EXEC="agent" \
   INSTALL_K3S_SYMLINK="skip" \
     sh "$tmp/install.sh"
   rm -rf "$tmp"
-  ok "k3s agent installed"
+  ok "k3s agent installed as a systemd service"
 }
 
 wait_for_agent() {
-  step "waiting for the agent to start"
+  step "starting the agent"
   if [ "$DRY_RUN" = "1" ]; then say "  (dry run) would wait for k3s-agent.service"; return 0; fi
-  local i=0
-  while [ "$i" -lt 90 ]; do
+
+  say "  systemd is starting k3s-agent.service. On a first run it can take one to"
+  say "  three minutes: the agent registers with the cluster, gets its certificates,"
+  say "  and starts the container runtime. This window stays quiet on purpose — it"
+  say "  is not stuck."
+  local waited=0 line last=""
+  while [ "$waited" -lt 240 ]; do
     if systemctl is-active --quiet k3s-agent; then
-      ok "k3s-agent is active"
+      printf '\r  %s\n' "$(printf '%*s' 48 '')"
+      ok "k3s-agent is running"
       break
     fi
-    sleep 2; i=$((i + 2))
+    printf '\r  waiting for the service… %ss' "$waited"
+    # Every 15 s, show the most recent line the agent logged, so the terminal is
+    # never silent for long.
+    if [ $((waited % 15)) -eq 0 ] && [ "$waited" -gt 0 ]; then
+      line="$(journalctl -u k3s-agent -n 40 --no-pager -o cat 2>/dev/null | tail -1 | cut -c1-100)"
+      if [ -n "$line" ] && [ "$line" != "$last" ]; then
+        printf '\r  %s\n  %s\n' "$(printf '%*s' 40 '')" "$line"
+        last="$line"
+      fi
+    fi
+    sleep 5
+    waited=$((waited + 5))
   done
+
+  local logs
+  logs="$(journalctl -u k3s-agent -n 120 --no-pager 2>/dev/null || true)"
+
   if ! systemctl is-active --quiet k3s-agent; then
     printf '\n' >&2
-    journalctl -u k3s-agent -n 40 --no-pager >&2 || true
-    die "k3s-agent did not start; the last 40 log lines are above"
+    printf '%s\n' "$logs" | tail -25 >&2
+    die "k3s-agent is not running. The last 25 log lines are above."
   fi
-  if journalctl -u k3s-agent -n 200 --no-pager 2>/dev/null | grep -qiE 'level=fatal|failed to (join|register)|401 unauthorized'; then
-    warn "the agent log mentions a join failure; run: sudo journalctl -u k3s-agent -n 60"
-  else
-    ok "agent joined without a reported error"
+
+  if printf '%s' "$logs" | grep -qiE 'invalid bearer token|not authorized|unauthorized'; then
+    say ""
+    die "the cluster rejected this machine's token (401 Not authorized).
+
+The join code was revoked, expired, or already used by another machine.
+Get a fresh code at https://k3s.kituwa.com/join/ and run this again —
+the k3s binary is already installed, so the second run only replaces the
+token and restarts the service."
   fi
+  if printf '%s' "$logs" | grep -qiE 'node password failed|node password rejected'; then
+    say ""
+    die "the cluster has a different node password for the name '${NODE_NAME}'.
+Rename this machine (--node-name) or delete the old node record:
+  ssh kituwa-cloud-1 'sudo -n k3s kubectl delete node ${NODE_NAME}'"
+  fi
+
+  ok "the agent is up and the service is enabled for every boot"
 }
 
 # ------------------------------------------------------------ uninstall -----
@@ -377,12 +421,19 @@ summary() {
   say "   server    ${SERVER%/}"
   say "   version   $K3S_VERSION"
   say ""
+  say " It is installed as a systemd service. That means:"
+  say "   • it starts automatically every time this machine boots"
+  say "   • it keeps running after you close this terminal window"
+  say "   • you do not need to leave anything open"
+  say "   • turning the machine off stops it cleanly; turning it on starts it again"
+  say ""
   say " Check it any time:"
   say "   systemctl status k3s-agent"
   say "   sudo journalctl -u k3s-agent -f"
   say ""
+  say ""
   say " Leave whenever you want, no questions asked:"
-  say "   curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --uninstall --remove-tailscale"
+  say "   curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --uninstall --remove-tailscale"
   printf '%s────────────────────────────────────────────────────────%s\n' "$C_DIM" "$C_RESET"
   say ""
   say "Thank you for donating compute. You can see the cluster at https://k3s.kituwa.com"

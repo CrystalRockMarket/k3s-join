@@ -46,23 +46,29 @@
 
   <section class="band" aria-labelledby="chart-h">
     <div class="chart-head">
-      <h2 id="chart-h">Work over the last three months</h2>
-      <div class="tabs small" role="tablist" aria-label="Range">
-        <button role="tab" id="tab-90" aria-selected="true" aria-controls="chart">90 days</button>
-        <button role="tab" id="tab-7d" aria-selected="false" aria-controls="chart">7 days</button>
-        <button role="tab" id="tab-24" aria-selected="false" aria-controls="chart">24 hours</button>
+      <h2 id="chart-h">Points earned, and work done</h2>
+      <div class="chart-controls">
+        <div class="tabs small" role="tablist" aria-label="View">
+          <button role="tab" id="view-points" aria-selected="true" aria-controls="chart">Points</button>
+          <button role="tab" id="view-work" aria-selected="false" aria-controls="chart">Work</button>
+        </div>
+        <div class="tabs small" role="tablist" aria-label="Range">
+          <button role="tab" id="tab-90" aria-selected="true" aria-controls="chart">90 days</button>
+          <button role="tab" id="tab-7d" aria-selected="false" aria-controls="chart">7 days</button>
+          <button role="tab" id="tab-24" aria-selected="false" aria-controls="chart">24 hours</button>
+        </div>
       </div>
     </div>
     <figure class="chart-fig">
       <div id="chart" class="chart" data-state="loading"></div>
       <figcaption class="note" id="asof">Loading the published snapshot…</figcaption>
     </figure>
-    <p class="note"><strong>Bright bars are measured.</strong> Faded bars are the
-      three months before the meter existed, extrapolated from recent measured use:
-      the same daily rhythm, with whole stretches where the worker is idle. They are
-      shown for shape and are <strong>never added to the score</strong>. The total
-      above is only work we can point at: 34,000+ backlog points from counted runs,
-      renders, scans and commits, plus every second measured since.</p>
+    <p class="note"><strong>Points</strong> is the balance growing: one line for the
+      whole cluster and one per machine. <strong>Work</strong> is the same data as
+      effort per day — bright bars are measured, faded bars are the months before the
+      meter existed, extrapolated from recent measured use (same daily rhythm, whole
+      idle stretches). Extrapolation is drawn for shape and <strong>never</strong>
+      added to a balance.</p>
   </section>
 
   <section class="band" aria-labelledby="now">
@@ -151,6 +157,6 @@
   </nav>
 </footer>
 
-<script src="/points/points.js?v=5" defer></script>
+<script src="/points/points.js?v=6" defer></script>
 </body>
 </html>

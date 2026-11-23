@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>See the cluster — k3s.kituwa.com</title>
+<meta name="description" content="Every worker in the Kituwa cluster, what it has earned and what it has done.">
+<link rel="canonical" href="https://k3s.kituwa.com/cluster/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script defer src="/analytics.js"></script>
+<script defer data-domain="k3s.kituwa.com" src="https://plausible.kituwa.com/js/script.js"></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span>k3s<span class="dim">.kituwa.com</span></span></a>
+  <nav class="top-nav">
+    <a href="/#install">Install</a>
+    <a href="/points/">Points</a>
+    <a href="/join/">Join</a>
+    <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero compact">
+    <p class="eyebrow">Cluster</p>
+    <h1>See the cluster</h1>
+    <p class="lede">Every machine, what it has earned and what it is doing. Your
+      machine appears here the moment it joins.</p>
+    <div class="stat-row" id="stats">
+      <div class="stat"><span class="stat-n" id="s-nodes">—</span><span class="stat-l">workers online</span></div>
+      <div class="stat"><span class="stat-n" id="s-total">—</span><span class="stat-l">points all time</span></div>
+      <div class="stat"><span class="stat-n" id="s-24h">—</span><span class="stat-l">points last 24 h</span></div>
+      <div class="stat"><span class="stat-n" id="s-backlog">—</span><span class="stat-l">from the backlog</span></div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="workers">
+    <h2 id="workers">Workers</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Machine</th><th>Role</th><th>Status</th><th>Points</th><th>Share</th><th>Last sample</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="6" class="note">Reading the published snapshot…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note">A volunteer machine only earns while idle. A dedicated worker earns whenever it works.</p>
+  </section>
+
+  <section class="band" aria-labelledby="done">
+    <h2 id="done">What has been done</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Source</th><th>Units counted</th><th>Points</th></tr></thead>
+        <tbody id="sources"><tr><td colspan="3" class="note">—</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note">Counted from project databases, not estimated: runs, renders, scans and commits.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div><p><strong>Kituwa</strong> — small tools, run honestly.</p></div>
+  <nav><a href="/">Home</a><a href="/points/">Points</a><a href="/join/">Join</a></nav>
+</footer>
+<script src="/cluster/cluster.js" defer></script>
+</body>
+</html>

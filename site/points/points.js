@@ -5,7 +5,7 @@
   "use strict";
 
   var NS = "http://www.w3.org/2000/svg";
-  var state = { data: null, range: "history_90d" };
+  var state = { data: null, range: "history_90d", view: "points" };
 
   function el(name, attrs) {
     var node = document.createElementNS(NS, name);
@@ -30,16 +30,90 @@
     return Math.round(mins / 1440) + " d ago";
   }
 
-  function draw(series, total) {
+  function cumulative(buckets, backlog) {
+    var running = backlog || 0, out = [];
+    buckets.forEach(function (b) { running += b.points; out.push(running); });
+    return out;
+  }
+
+  function drawPoints(buckets, backlog) {
     var host = document.getElementById("chart");
     host.innerHTML = "";
-    var buckets = (series || []).slice();
     if (!buckets.length) {
       host.innerHTML = '<p class="note">The ledger has no samples yet.</p>';
-      host.setAttribute("data-state", "empty");
       return;
     }
-    // Three windows: hourly for a day and a week, daily for the quarter.
+    // A balance may only contain measured work, so this view plots the measured
+    // window: one point per measured hour since the meter started.
+    var projectedAll = cumulative(buckets, backlog);
+    var projectedValue = projectedAll[projectedAll.length - 1];
+    var measuredOnly = buckets.filter(function (b) { return b.source === "measured"; });
+    if (!measuredOnly.length) {
+      host.innerHTML = '<p class="note">No measured hours yet — the meter starts collecting immediately.</p>';
+      return;
+    }
+    buckets = measuredOnly;
+    var balanceValues = cumulative(buckets, backlog);
+    var series = [{ label: "balance", values: balanceValues, main: true }];
+    var tail = buckets.length;
+    ((state.data.history_90d || {}).node_series || []).forEach(function (n) {
+      var values = n.cumulative.slice(Math.max(0, n.cumulative.length - tail));
+      series.push({ label: n.node, values: values, main: false, node: true });
+    });
+
+    var w = host.clientWidth || 900, h = 280, pad = 44, bottom = 26;
+    var basis = balanceValues;
+    var hi = Math.max.apply(null, basis), lo = Math.min.apply(null, basis);
+    var span = (hi - lo) || 1;
+    var x = function (i) { return pad + (i * (w - pad * 2)) / (buckets.length - 1); };
+    var y = function (v) { return h - bottom - ((v - lo) / span) * (h - pad - bottom); };
+
+    var svg = el("svg", { viewBox: "0 0 " + w + " " + h, class: "chart-svg", role: "img",
+      "aria-label": "Cumulative points per machine" });
+    [0, 0.5, 1].forEach(function (f) {
+      var gy = pad + f * (h - pad - bottom);
+      svg.appendChild(el("line", { x1: pad, x2: w - pad, y1: gy, y2: gy, stroke: "#232a33" }));
+      var label = el("text", { x: 4, y: gy + 4, fill: "#6e7887", "font-size": "11",
+        "font-family": "ui-monospace, monospace" });
+      label.textContent = fmt(hi - f * span);
+      svg.appendChild(label);
+    });
+
+    series.forEach(function (line, idx) {
+      var d = "", started = false;
+      line.values.forEach(function (v, i) {
+        if (v == null) { return; }
+        d += (started ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+        started = true;
+      });
+      if (!d) { return; }
+      svg.appendChild(el("path", { d: d, fill: "none",
+        stroke: line.main ? "#b8f24a" : line.dashed ? "rgba(184,242,74,.35)" : ["#7aa7ff", "#ffb454", "#ff7a9e"][idx % 3],
+        "stroke-width": line.main ? 2.6 : 1.8,
+        "stroke-dasharray": line.dashed ? "5 5" : "",
+        "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    });
+
+    var firstMeasured = buckets.findIndex(function (b) { return b.source === "measured"; });
+    var legend = el("text", { x: pad, y: h - 8, fill: "#6e7887", "font-size": "11",
+      "font-family": "ui-monospace, monospace" });
+    legend.textContent = series.map(function (l) {
+      var lastValue = null;
+      for (var i = l.values.length - 1; i >= 0; i--) { if (l.values[i] != null) { lastValue = l.values[i]; break; } }
+      return l.label + " " + fmt(lastValue || 0);
+    }).join("   ") + "   ·   3-month projection " + fmt(projectedValue) + " (not counted)";
+    svg.appendChild(legend);
+    host.appendChild(svg);
+    host.setAttribute("data-state", "ready");
+  }
+
+  function drawWork(buckets) {
+    var host = document.getElementById("chart");
+    host.innerHTML = "";
+    if (!buckets.length) {
+      host.innerHTML = '<p class="note">The ledger has no samples yet.</p>';
+      return;
+    }
     var daily = state.range === "history_90d";
     var points = [];
     if (daily) {
@@ -58,45 +132,37 @@
         return { label: b.t, points: b.points, measured: b.source !== "extrapolated" };
       });
     }
-
     var w = host.clientWidth || 900, h = 260, pad = 34, bottom = 26;
     var hi = Math.max.apply(null, points.map(function (p) { return p.points; })) || 1;
     var barW = Math.max(1, (w - pad * 2) / points.length - (daily ? 1 : 0.4));
-
     var svg = el("svg", { viewBox: "0 0 " + w + " " + h, class: "chart-svg", role: "img",
-      "aria-label": "Work per " + (daily ? "day" : "hour") + ", measured and extrapolated" });
-
+      "aria-label": "Work per " + (daily ? "day" : "hour") });
     [0, 0.5, 1].forEach(function (f) {
       var gy = pad + f * (h - pad - bottom);
       svg.appendChild(el("line", { x1: pad, x2: w - pad, y1: gy, y2: gy, stroke: "#232a33" }));
     });
-    svg.appendChild(el("line", { x1: pad, x2: w - pad, y1: h - bottom, y2: h - bottom, stroke: "#2d3641" }));
-
     points.forEach(function (p, i) {
       var x = pad + i * ((w - pad * 2) / points.length);
       var bh = (p.points / hi) * (h - pad - bottom);
-      if (bh < 1) {
-        // An idle hour/day still gets a tick, so "off" is visible rather than blank.
-        svg.appendChild(el("rect", { x: x, y: h - bottom - 2, width: Math.max(1, barW),
-          height: 2, fill: "#2d3641" }));
-        return;
-      }
-      svg.appendChild(el("rect", { x: x, y: h - bottom - bh, width: Math.max(1, barW),
-        height: bh, fill: p.measured ? "#b8f24a" : "rgba(184,242,74,.34)" }));
+      svg.appendChild(el("rect", { x: x, y: h - bottom - (bh || 2), width: Math.max(1, barW),
+        height: bh || 2, fill: bh < 1 ? "#2d3641" : (p.measured ? "#b8f24a" : "rgba(184,242,74,.34)") }));
     });
-
     var measuredCount = points.filter(function (p) { return p.measured; }).length;
     var label = el("text", { x: pad, y: h - 8, fill: "#6e7887", "font-size": "11",
       "font-family": "ui-monospace, monospace" });
     label.textContent = "measured " + measuredCount + " · extrapolated " + (points.length - measuredCount);
     svg.appendChild(label);
-
-    var maxLabel = el("text", { x: w - pad, y: h - 8, fill: "#6e7887", "font-size": "11",
-      "text-anchor": "end", "font-family": "ui-monospace, monospace" });
-    maxLabel.textContent = "peak " + fmt(hi) + " / " + (daily ? "day" : "hour");
-    svg.appendChild(maxLabel);
     host.appendChild(svg);
     host.setAttribute("data-state", "ready");
+  }
+
+  function drawChart() {
+    var buckets = seriesFor(state.data);
+    if (state.view === "points") {
+      drawPoints(buckets, state.data.backlog_points || 0);
+    } else {
+      drawWork(buckets);
+    }
   }
 
   function renderNodes(nodes) {
@@ -132,9 +198,9 @@
       "Published " + ago(d.generated_at) + " · " + d.points_24h + " points in the last 24 h · " +
       "rule: " + d.rule;
     renderNodes(d.nodes);
-    var series = seriesFor(d);
+
     try {
-      draw(series, d.total_points);
+      drawChart();
     } catch (err) {
       var host = document.getElementById("chart");
       host.setAttribute("data-state", "error");
@@ -153,10 +219,22 @@
   document.getElementById("tab-24").addEventListener("click", function () { setRange("series_24h", "tab-24"); });
   document.getElementById("tab-7d").addEventListener("click", function () { setRange("series_7d", "tab-7d"); });
   document.getElementById("tab-90").addEventListener("click", function () { setRange("history_90d", "tab-90"); });
+
+  ["points", "work"].forEach(function (view) {
+    document.getElementById("view-" + view).addEventListener("click", function () {
+      state.view = view;
+      ["points", "work"].forEach(function (v) {
+        document.getElementById("view-" + v).setAttribute("aria-selected", v === view ? "true" : "false");
+      });
+      var range = document.getElementById("tab-90").closest(".tabs");
+      if (range) { range.style.opacity = view === "points" ? ".45" : "1"; }
+      paint();
+    });
+  });
   window.addEventListener("resize", function () {
     if (!state.data) { return; }
     try {
-      draw(seriesFor(state.data), state.data.total_points);
+      drawChart();
     } catch (err) {
       // A resize must never leave the chart blank.
       document.getElementById("chart").textContent = "Chart error: " + (err && err.message);
