@@ -514,3 +514,7 @@ tbody td:first-child { color: var(--ink); }
 .os-line[open] summary { color: var(--ink); margin-bottom: .5rem; }
 .os-line pre { margin: 0 0 .55rem; }
 .os-line pre code { max-height: 9rem; overflow: auto; display: block; }
+
+.raw-code { margin-top: .6rem; border-top: 1px dashed var(--line); padding-top: .6rem; }
+.raw-code summary { cursor: pointer; font-size: .8rem; color: var(--soft); }
+.raw-code pre code { max-height: 8rem; overflow: auto; display: block; }

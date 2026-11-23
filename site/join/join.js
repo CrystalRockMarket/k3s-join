@@ -84,48 +84,56 @@
     return "$env:KITUWA_JOIN_CODE='" + code + "'; irm https://k3s.kituwa.com/install.ps1 | iex";
   }
 
+  function detectOS() {
+    var ua = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || "";
+    if (/win/i.test(ua)) { return "windows"; }
+    if (/mac|iphone|ipad/i.test(ua)) { return "macos"; }
+    return "linux";
+  }
+
   function showCode(data) {
     form.hidden = true;
+    var mine = detectOS();
+    var order = [mine].concat(["linux", "macos", "windows"].filter(function (p) { return p !== mine; }));
+    var label = { linux: "Linux", macos: "macOS", windows: "Windows (PowerShell, as admin)" };
+
     var panel = document.createElement("div");
     panel.className = "code-panel";
     panel.innerHTML =
-      '<p class="code-title">Your join code for <strong>' + esc(data.node) + "</strong></p>" +
-      '<p class="note">Shown once and never stored. It expires in ' +
-      Math.round((data.expires_in || 3600) / 60) + " minutes, and the node can be revoked.</p>" +
-      '<pre><code id="join-code">' + esc(data.code) + "</code></pre>" +
-      '<div class="code-actions">' +
-      '<button type="button" class="btn primary" id="copy-code">Copy the code</button>' +
-      "</div>" +
-      '<p class="note">Pick your system, copy the line, paste it into a terminal:</p>' +
-      ["linux", "macos", "windows"].map(function (platform, i) {
-        var label = platform === "windows" ? "Windows (PowerShell, as admin)" :
-                    platform === "macos" ? "macOS" : "Linux";
+      '<p class="code-title">Your install command for <strong>' + esc(data.node) + "</strong></p>" +
+      '<p class="note">One line. The join code is inside it — you paste the command, not two things. ' +
+      "It expires in " + Math.round((data.expires_in || 3600) / 60) +
+      " minutes and the machine can be revoked at any time.</p>" +
+      order.map(function (platform, i) {
         return "<details class=\"os-line\"" + (i === 0 ? " open" : "") + ">" +
-          "<summary>" + label + "</summary>" +
+          "<summary>" + (i === 0 ? "Detected: " : "") + label[platform] + "</summary>" +
           "<pre><code>" + esc(commandFor(platform, data.code)) + "</code></pre>" +
-          '<button type="button" class="btn small" data-copy="' + platform + '">Copy the ' +
-          label.split(" ")[0] + " command</button>" +
+          '<button type="button" class="btn ' + (i === 0 ? "primary" : "") +
+          ' small" data-copy="' + platform + '">Copy the command</button>' +
           "</details>";
       }).join("") +
+      '<details class="raw-code"><summary>Or just the code, for a machine where you already run the installer</summary>' +
+      "<pre><code id=\"join-code\">" + esc(data.code) + "</code></pre>" +
+      '<button type="button" class="btn small" id="copy-code">Copy only the code</button></details>' +
       '<p class="form-status good">That is everything. The machine appears on ' +
       '<a href="/points/">the points chart</a> by name once it is idle.</p>';
     form.parentNode.insertBefore(panel, form.nextSibling);
-    form.hidden = true;
     status.textContent = "";
 
-    function copy(text, button, label) {
-      var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = label; }, 1600); };
+    function copy(text, button) {
+      var original = button.textContent;
+      var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = original; }, 1600); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done, function () {});
       }
     }
-    panel.querySelector("#copy-code").addEventListener("click", function () {
-      copy(data.code, this, "Copy the code");
-    });
     Array.prototype.forEach.call(panel.querySelectorAll("[data-copy]"), function (button) {
       button.addEventListener("click", function () {
-        copy(commandFor(button.getAttribute("data-copy"), data.code), button, "Copy");
+        copy(commandFor(button.getAttribute("data-copy"), data.code), button);
       });
+    });
+    panel.querySelector("#copy-code").addEventListener("click", function () {
+      copy(data.code, this);
     });
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
   }
