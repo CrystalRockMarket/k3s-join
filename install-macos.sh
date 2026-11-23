@@ -68,6 +68,7 @@ case "$ARCH" in arm64|x86_64) ;; *) die "unsupported architecture: $ARCH" ;; esa
 # -------------------------------------------------------------------- lima --
 ensure_lima() {
   step "checking the Linux VM layer (Lima)"
+  LIMACTL="${LIMACTL:-limactl}"
   if have limactl; then ok "limactl found"; LIMACTL="$(command -v limactl)"; return 0; fi
   if have brew; then
     say "  installing Lima with Homebrew"
@@ -125,7 +126,7 @@ install_in_vm() {
   printf '%s' "$CODE" | "$LIMACTL" shell "$VM_NAME" -- \
     sudo sh -c 'umask 077; mkdir -p /root/.kituwa; cat > /root/.kituwa/code; chmod 600 /root/.kituwa/code'
   curl -fsSL "$INSTALL_URL" | "$LIMACTL" shell "$VM_NAME" -- \
-    sudo sh -s -- --code-file /root/.kituwa/code --yes --node-name "$(scutil --get ComputerName 2>/dev/null | tr -cd '[:alnum:]-' | cut -c1-40 || echo mac)"
+    sudo sh -s -- --code-file /root/.kituwa/code --yes --node-name "$(scutil --get ComputerName 2>/dev/null | tr -cd '[:alnum:]-' | cut -c1-40 || true)mac"
   "$LIMACTL" shell "$VM_NAME" -- sudo rm -f /root/.kituwa/code
   ok "agent installed"
 }
@@ -175,11 +176,15 @@ say ""
 say "k3s-join $VERSION for macOS — Linux VM, cluster worker"
 say "source: https://github.com/CrystalRockMarket/k3s-join (MIT)"
 
-ensure_lima
 if [ "$DO_UNINSTALL" = "1" ]; then
+  LIMACTL="${LIMACTL:-limactl}"
+  command -v "$LIMACTL" >/dev/null 2>&1 || "$LIMACTL" --version >/dev/null 2>&1 || {
+    say "Lima is not installed, so there is no VM to delete."; exit 0; }
   uninstall_vm
   exit 0
 fi
+
+ensure_lima
 
 if [ -z "$CODE" ]; then
   if [ -t 0 ]; then
@@ -201,6 +206,6 @@ say " This Mac now runs a Linux worker for the Kituwa cluster."
 say ""
 say "   VM        $VM_NAME (Lima)"
 say "   check     limactl shell $VM_NAME -- sudo systemctl status k3s-agent"
-say "   leave     /bin/sh -c \"\$(curl -fsSL https://k3s.kituwa.com/install-macos.sh)\" --uninstall"
+say "   leave     curl -fsSL https://k3s.kituwa.com/install-macos.sh | bash -s -- --uninstall"
 say "────────────────────────────────────────────────────────"
 say "Thank you for donating compute. https://k3s.kituwa.com"

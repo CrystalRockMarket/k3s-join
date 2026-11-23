@@ -159,19 +159,24 @@ diagnose() {
     say "service: $(systemctl is-active k3s-agent 2>/dev/null || echo unknown) / $(systemctl is-enabled k3s-agent 2>/dev/null || echo unknown)"
     say "--- config (token redacted)"
     sed -e 's/^token:.*/token: <redacted>/' /etc/rancher/k3s/config.yaml 2>/dev/null || say "no config.yaml"
-    say "--- token: $(wc -c < /etc/rancher/k3s/token 2>/dev/null || echo 0) bytes, ends $(tail -c 8 /etc/rancher/k3s/token 2>/dev/null)"
+    say "--- token: $(wc -c < /etc/rancher/k3s/token 2>/dev/null || echo 0) bytes, (content withheld)"
     say "--- tailscale: $(tailscale ip -4 2>/dev/null | head -1 || echo none)"
     say "--- api: $(curl -sk -o /dev/null -w '%{http_code}' -m 8 https://100.120.24.106:6443/version 2>/dev/null || echo unreachable)"
     say "--- last agent errors"
     journalctl -u k3s-agent -n 400 --no-pager 2>/dev/null \
       | grep -iE "error|fatal|fail|unauthor|denied|refused|timeout|password" \
-      | tail -12 | cut -c1-160
+      | tail -12 | cut -c1-160 || true
   } > "$tmp" 2>&1
 
   cat "$tmp"
   say ""
   say "  Sending this to the Kituwa inbox (high priority)…"
 
+  if ! have python3; then
+    say "  (python3 is not installed, so automatic sending is skipped — the lines above are all I need)"
+    rm -f "$tmp"
+    return 1
+  fi
   jar="$(mktemp)"
   tok="$(curl -sS -c "$jar" -m 15 https://k3s.kituwa.com/api/v1/forms/k3s-join/token 2>/dev/null \
     | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
@@ -306,6 +311,12 @@ preflight() {
   if [ -f /.dockerenv ] || grep -qaE '(docker|kubepods|lxc)' /proc/1/cgroup 2>/dev/null; then
     [ "$ALLOW_CONTAINER" = "1" ] || die "this looks like a container. k3s needs a real host (a VM is fine); pass --allow-container only if you know it works"
   fi
+  if have timedatectl; then
+    if [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" != "yes" ]; then
+      warn "this machine's clock is not NTP-synced; k3s TLS can fail because of it."
+      warn "fix it with: sudo timedatectl set-ntp true"
+    fi
+  fi
   for mod in br_netfilter overlay; do
     modprobe "$mod" 2>/dev/null || warn "kernel module $mod is not loadable; k3s may fail to start"
   done
@@ -418,7 +429,7 @@ write_config() {
   {
     printf 'server: %s\n' "${SERVER%/}"
     printf 'token-file: %s\n' "$TOKEN_FILE"
-    printf 'node-name: %s\n' "$NODE_NAME"
+    printf 'node-name: "%s"\n' "$NODE_NAME"
     if [ -n "$TAILNET_IP" ]; then printf 'node-ip: %s\n' "$TAILNET_IP"; fi
     if [ "$USE_TAILSCALE" = "1" ]; then
       printf 'flannel-iface: tailscale0\n'
@@ -522,7 +533,7 @@ install_k3s() {
     if curl -fsSL -o "$tmp/sums" "$sum_url" 2>/dev/null; then
       want="$(awk '/ k3s$/ {print $1}' "$tmp/sums" | head -1)"
       got="$(sha256sum "$tmp/k3s.bin" | awk '{print $1}')"
-      if [ -n "$want" ] && [ "$want" != "$got" ]; then
+      if [ -z "$want" ] || [ "$want" != "$got" ]; then
         warn "checksum mismatch on the downloaded binary; letting the official installer fetch it"
         rm -f "$tmp/k3s.bin"
       else
@@ -619,7 +630,12 @@ The state was uploaded for me to read — you do not need to copy anything."
     die "k3s-agent is not running. The last 25 log lines are above."
   fi
   say ""
-  ok "the agent is up and enabled for every boot"
+  if [ "$(systemctl is-enabled k3s-agent 2>/dev/null)" = "enabled" ]; then
+    ok "the agent is up and enabled for every boot"
+  else
+    warn "the agent is running but not enabled at boot; fixing that now"
+    systemctl enable k3s-agent >/dev/null 2>&1 || warn "could not enable it — run: sudo systemctl enable k3s-agent"
+  fi
 }
 
 # ------------------------------------------------------------ uninstall -----
