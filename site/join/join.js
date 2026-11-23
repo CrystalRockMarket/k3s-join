@@ -92,8 +92,8 @@
   }
 
   function nodeCommand(code) {
-    return "curl -fsSL https://k3s.kituwa.com/cli/cluster.mjs -o /tmp/kc.mjs && " +
-           "sudo node /tmp/kc.mjs agent --code '" + code + "'";
+    return "curl -fsSL https://k3s.kituwa.com/cli/run.sh | sudo bash -s -- " +
+           "agent --code '" + code + "'";
   }
 
   function showCode(data) {

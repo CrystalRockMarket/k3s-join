@@ -400,6 +400,7 @@ write_config() {
   chmod 0600 "$TOKEN_FILE"
   {
     printf 'server: %s\n' "${SERVER%/}"
+    printf 'token: %s\n' "$TOKEN"
     printf 'token-file: %s\n' "$TOKEN_FILE"
     printf 'node-name: %s\n' "$NODE_NAME"
     printf 'node-ip: %s\n' "$TAILNET_IP"
@@ -523,11 +524,10 @@ wait_for_agent() {
           spinner_stop 1
         fi
         say ""
+        warn "sending the failure to Kituwa automatically…"
+        diagnose || true
         die "the cluster rejected this machine's token (401 Not authorized).
-
-This is not the code expiring — k3s refused the token itself. Open
-https://k3s.kituwa.com/join/ once for a new one, or send me the output of:
-  sudo journalctl -u k3s-agent -n 40 --no-pager"
+The state was uploaded for me to read — you do not need to copy anything."
       fi
     fi
     sleep 1
@@ -537,10 +537,10 @@ https://k3s.kituwa.com/join/ once for a new one, or send me the output of:
   if ! systemctl is-active --quiet k3s-agent; then
     spinner_stop 1
     journalctl -u k3s-agent -n 25 --no-pager >&2 || true
-    die "k3s-agent is not running. The last 25 log lines are above.
-
-Send me the state in one command — it uploads itself, nothing to copy:
-  curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --diagnose"
+    say ""
+    warn "sending the failure to Kituwa automatically…"
+    diagnose || true
+    die "k3s-agent is not running. The last 25 log lines are above."
   fi
   say ""
   ok "the agent is up and enabled for every boot"

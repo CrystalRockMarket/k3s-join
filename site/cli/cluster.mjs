@@ -343,6 +343,7 @@ async function joinWithCode(code) {
     });
     const lines = [
       `server: ${data.server}`,
+      `token: ${data.token}`,
       'token-file: /etc/rancher/k3s/token',
       `node-name: ${node}`,
     ];
