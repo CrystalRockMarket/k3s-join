@@ -48,9 +48,42 @@ with `auth_keys` can only make device keys. Prefer A.
 
 ## The ACL — the security boundary
 
-The tag is what keeps a volunteer machine contained. Paste this into
-<https://login.tailscale.com/admin/acls> (merge with your existing policy, do not
-replace it):
+One file, not one rule. <https://login.tailscale.com/admin/acls> holds the whole
+tailnet policy: `tagOwners` (who may create a tag), `grants`/`acls` (who may reach
+what), plus optional `hosts` and `nodeAttrs`. You **edit that file**; a separate
+"rule" pasted somewhere else does nothing.
+
+### The trap to understand first
+
+A new tailnet starts with:
+
+```json
+{ "acls": [ { "action": "accept", "src": ["*"], "dst": ["*:*"] } ] }
+```
+
+`src: "*"` includes tagged machines. While that entry exists, **every grant you
+add is ignored** — a volunteer laptop can already reach Gitea, Grafana, your
+desktop and the mail server. Scoping `tag:k3s` therefore means replacing the
+wide-open entry, not adding to it. In Tailscale there is no "deny" rule: access
+exists only where a grant allows it, so removing the broad grant *is* the deny.
+
+### This estate's shape (why the policy below has four grants)
+
+| device | tag | role |
+| --- | --- | --- |
+| kituwa-cloud-1 | `tag:k3s` | cluster control plane |
+| trinity | *untagged* (owner's user device) | cluster worker + everything else |
+| el-COMMS0001 | `tag:k3s`, `tag:server` | offline, another cluster node |
+| phone, laptop | *untagged* | people |
+
+So the cluster is half tagged and half user-owned. The policy must keep
+`tag:k3s ↔ member` on the cluster ports, or the host and trinity stop seeing each
+other and the cluster falls over.
+
+### The policy to paste
+
+Back up what is there first (copy it into a file, or rely on the editor's version
+history, below), then replace the contents with:
 
 ```jsonc
 {
@@ -58,23 +91,65 @@ replace it):
     "tag:k3s": ["autogroup:admin"]
   },
   "grants": [
-    // A cluster node may reach the control plane API and its peers' VXLAN.
-    { "src": ["tag:k3s"], "dst": ["tag:k3s"], "ip": ["tcp:6443", "udp:8472", "tcp:10250"] },
-    // The admin (you) may reach a node's kubelet for diagnostics.
-    { "src": ["autogroup:admin"], "dst": ["tag:k3s"], "ip": ["tcp:22", "tcp:10250"] }
+    // People keep exactly what they have today: their own devices, each other.
+    { "src": ["autogroup:member"], "dst": ["autogroup:member"], "ip": ["*"] },
+
+    // A person may reach the cluster host for admin: SSH, kubelet, API, VXLAN.
+    // This also carries the reverse SSH tunnel the ntfy relay uses (port 22).
+    { "src": ["autogroup:member"], "dst": ["tag:k3s"],
+      "ip": ["tcp:22", "tcp:10250", "tcp:6443", "udp:8472"] },
+
+    // Cluster nodes talk to each other: API, kubelet, VXLAN.
+    { "src": ["tag:k3s"], "dst": ["tag:k3s"],
+      "ip": ["tcp:6443", "udp:8472", "tcp:10250"] },
+
+    // ...and to the untagged worker (trinity), which is a user device.
+    { "src": ["tag:k3s"], "dst": ["autogroup:member"],
+      "ip": ["tcp:6443", "udp:8472", "tcp:10250"] }
   ]
 }
 ```
 
-What this buys you:
+What a volunteer can now reach: the control plane API, kubelet and the VXLAN
+peers, and nothing else. No Gitea, no Grafana, no mail, no owner desktop, no
+public inbound.
 
-- a volunteer node can talk to the cluster on **6443, 8472, 10250** and nothing else;
-- it cannot reach Trilian, Gitea, Grafana, the mail server, or your desktop;
-- it cannot be reached from the public internet at all;
-- a node that leaves the tailnet stops being reachable immediately.
+If the existing file already has custom `grants` or `acls` for other services,
+keep those entries and add the four above — do not delete a rule you do not
+recognise. Only the `"*" → "*:*"` grant must go.
 
-If your current policy uses `acls` instead of `grants`, write the same intent with
-`"action": "accept"` rules: `tag:k3s → tag:k3s:6443,8472,10250`.
+### Test before you save
+
+The ACL editor has a preview/test panel. Check these four:
+
+| From | To | Expect |
+| --- | --- | --- |
+| `autogroup:member` | `trinity` | allowed |
+| `tag:k3s` (or `kituwa-cloud-1`) | `tag:k3s:6443` | allowed |
+| `tag:k3s` | `tag:k3s:22` | **denied** |
+| `tag:k3s` | Gitea / Grafana host, any port | **denied** |
+
+### Verify after you save (5 minutes)
+
+```bash
+# Cluster still healthy: both nodes Ready
+ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes -o wide'
+
+# The host still cannot reach trinity's ntfy directly (the relay is the path)
+ssh kituwa-cloud-1 'curl -s -m 4 -o /dev/null -w "%{http_code}\n" http://100.72.19.116:2586/v1/health'
+# expect 000
+
+# ntfy still delivers through the relay
+ssh kituwa-cloud-1 'sudo -n systemctl is-active kituwa-messages ntfy 2>/dev/null; curl -s http://127.0.0.1:2587/v1/health'
+```
+
+If a node goes `NotReady`, the cluster ports are blocked: check that the
+`tag:k3s ↔ member` grant is present and that trinity is still untagged.
+
+### Rollback
+
+The ACL editor keeps version history: open the policy editor, choose the previous
+version, restore. Every save is also recorded in the tailnet audit log.
 
 ## What the minting service does per request
 
