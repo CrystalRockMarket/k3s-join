@@ -17,3 +17,14 @@
     });
   });
 })();
+
+/* Copy buttons anywhere on the page: the text they name, in full. */
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("[data-copy]");
+  if (!b) { return; }
+  var target = document.getElementById(b.getAttribute("data-copy"));
+  if (!target) { return; }
+  var text = target.textContent;
+  var done = function () { var old = b.textContent; b.textContent = "Copied"; setTimeout(function () { b.textContent = old; }, 1500); };
+  if (navigator.clipboard) { navigator.clipboard.writeText(text).then(done, function () {}); }
+});

@@ -545,3 +545,12 @@ tbody td:first-child { color: var(--ink); }
 .hero-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .hero-row .stat-row { flex: 1 1 32rem; margin-top: 1.4rem; }
 .hero-row .join-cta { margin-top: 1.4rem; white-space: nowrap; }
+
+.os-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1rem; margin: 1.4rem 0; }
+.os-card { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 1.1rem; }
+.os-card h3 { margin: 0 0 .5rem; font-size: 1rem; }
+.os-card pre { margin: .6rem 0; }
+.os-card pre code { white-space: pre-wrap; word-break: break-all; font-size: .74rem; }
+.os-card .btn.small { width: 100%; justify-content: center; }
+kbd { font-family: var(--mono); font-size: .78em; border: 1px solid var(--line-2); border-radius: 4px; padding: 0 .3em; }
+@media (max-width: 900px) { .os-grid { grid-template-columns: 1fr; } }

@@ -53,8 +53,7 @@
       removes it, and none of your files go with it.
     </p>
     <div class="hero-actions">
-      <a class="btn primary" href="/join/">Get a join code</a>
-      <a class="btn" href="#install">See the one-liner</a>
+      <a class="btn join-cta" href="/join/">Join Now</a>
     </div>
     <dl class="facts">
       <div><dt>Nodes now</dt><dd>2</dd></div>
@@ -102,32 +101,26 @@
       command asks.
     </p>
 
-    <div class="tabs" role="tablist" aria-label="Operating system">
-      <button role="tab" id="tab-linux" aria-controls="panel-linux" aria-selected="true">Linux</button>
-      <button role="tab" id="tab-mac" aria-controls="panel-mac" aria-selected="false">macOS</button>
-      <button role="tab" id="tab-win" aria-controls="panel-win" aria-selected="false">Windows</button>
+    <div class="os-grid">
+      <article class="os-card">
+        <h3>Linux</h3>
+        <p class="note">Open <strong>Terminal</strong> (usually <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>), paste the line, press Enter.</p>
+        <pre><code id="cmd-linux">curl -fsSL https://k3s.kituwa.com/linux -o kituwa-join.sh &amp;&amp; bash kituwa-join.sh</code></pre>
+        <button class="btn small" type="button" data-copy="cmd-linux">Copy the command</button>
+      </article>
+      <article class="os-card">
+        <h3>macOS</h3>
+        <p class="note">Open <strong>Terminal</strong> (⌘+Space, type “Terminal”), paste the line, press Enter.</p>
+        <pre><code id="cmd-mac">curl -fsSL https://k3s.kituwa.com/mac -o kituwa-join.command &amp;&amp; bash kituwa-join.command</code></pre>
+        <button class="btn small" type="button" data-copy="cmd-mac">Copy the command</button>
+      </article>
+      <article class="os-card">
+        <h3>Windows</h3>
+        <p class="note">Open <strong>PowerShell as administrator</strong> (right-click Start), paste, press Enter.</p>
+        <pre><code id="cmd-win">irm https://k3s.kituwa.com/windows -OutFile "$env:TEMP\kituwa-join.cmd"; &amp; "$env:TEMP\kituwa-join.cmd"</code></pre>
+        <button class="btn small" type="button" data-copy="cmd-win">Copy the command</button>
+      </article>
     </div>
-
-    <div class="panel" id="panel-linux" role="tabpanel" aria-labelledby="tab-linux">
-      <pre><code>curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --code 'k3s1.…'</code></pre>
-      <p class="note">Any modern systemd distribution on amd64, arm64 or armv7.
-        Needs 2 GB RAM and 8 GB free on <code>/var</code>.</p>
-    </div>
-
-    <div class="panel" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac" hidden>
-      <pre><code>curl -fsSL https://k3s.kituwa.com/install-macos.sh | bash -s -- --code 'k3s1.…'</code></pre>
-      <p class="note">k3s is Linux-only, so this creates a small Linux VM with Lima
-        and joins the VM. Apple silicon and Intel. The VM is created with no host
-        mounts, so it cannot see your home folder.</p>
-    </div>
-
-    <div class="panel" id="panel-win" role="tabpanel" aria-labelledby="tab-win" hidden>
-      <pre><code>irm https://k3s.kituwa.com/install.ps1 | iex</code></pre>
-      <p class="note">Needs an elevated PowerShell and WSL2; the script enables
-        systemd inside WSL and runs the same Linux installer there. Nothing on
-        Windows is mounted into a cluster workload. Paste the join code when asked.</p>
-    </div>
-
     <div class="callout">
       <p><strong>Read it before you run it.</strong> Both scripts are plain shell
       and PowerShell, with no bundled binaries. Read them first:
