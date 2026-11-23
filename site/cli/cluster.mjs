@@ -135,7 +135,8 @@ async function step(label, work, spinnerName = 'dots') {
     const reason = String(err.message || err).trim().split('\n').slice(-4).join('\n');
     await log(`fail  ${label}: ${reason}`);
     console.log('\n  ' + red('Failed: ') + reason);
-    console.log('  ' + dim(`Full log: ${LOG_PATH}`) + '\n');
+    console.log('  ' + dim(`Full log: ${LOG_PATH}`));
+    console.log('  ' + dim('Stuck? Run: sudo node cluster.mjs doctor --fix') + '\n');
     process.exit(1);
   }
 }
@@ -502,6 +503,84 @@ async function uninstall() {
   good('Removed. This machine is no longer part of the cluster.');
 }
 
+
+// ------------------------------------------------------------------ doctor ---
+// One command for "it is stuck". It collects a 20-line summary, uploads it to the
+// Kituwa inbox (no logs to copy), and with --fix it wipes the agent and re-joins.
+async function doctor() {
+  const fix = has('--fix');
+  const lines = [];
+
+  await step('Reading the k3s state', async (ctx) => {
+    const [version, active, enabled, config, tokenBytes, tokenTail, tsIp, api] = await Promise.all([
+      shSoft('/usr/local/bin/k3s --version 2>/dev/null | head -1'),
+      shSoft('systemctl is-active k3s-agent 2>/dev/null'),
+      shSoft('systemctl is-enabled k3s-agent 2>/dev/null'),
+      shSoft('sed -e "s/^\\(token:.*\\)/token: <redacted>/" /etc/rancher/k3s/config.yaml 2>/dev/null'),
+      shSoft('wc -c < /etc/rancher/k3s/token 2>/dev/null'),
+      shSoft('tail -c 8 /etc/rancher/k3s/token 2>/dev/null'),
+      shSoft('tailscale ip -4 2>/dev/null | head -1'),
+      shSoft("curl -sk -o /dev/null -w '%{http_code}' -m 8 https://100.120.24.106:6443/version"),
+    ]);
+    ctx.note(active || 'unknown');
+    lines.push(`host: ${os.hostname()} · ${os.release()} · ${os.arch()}`);
+    lines.push(`k3s: ${version || 'not installed'}`);
+    lines.push(`service: ${active || 'unknown'} / ${enabled || 'unknown'}`);
+    lines.push('--- config (token redacted)');
+    lines.push(config || 'no config.yaml');
+    lines.push(`--- token: ${(tokenBytes || '0').trim()} bytes, ends ${(tokenTail || '').trim()}`);
+    lines.push(`--- tailscale: ${(tsIp || 'none').trim()}`);
+    lines.push(`--- api: ${(api || 'unreachable').trim()}`);
+    lines.push('--- last agent errors');
+    const errs = await shSoft('journalctl -u k3s-agent -n 400 --no-pager 2>/dev/null '
+      + '| grep -iE "error|fatal|fail|unauthor|denied|refused|timeout|password" '
+      + '| tail -12 | cut -c1-160');
+    lines.push(errs || '(none)');
+  }, 'dots12');
+
+  const summary = lines.join('\n');
+  console.log('\n' + summary.split('\n').map((l) => '  ' + dim(l.slice(0, 150))).join('\n') + '\n');
+
+  await step('Sending the summary to Kituwa', async (ctx) => {
+    if (DRY) { ctx.note('dry run'); return; }
+    const jar = `/tmp/kc-jar-${process.pid}`;
+    const tokOut = await shSoft(`curl -sS -c ${jar} -m 15 https://k3s.kituwa.com/api/v1/forms/k3s-join/token`);
+    const tok = (tokOut.match(/"token":"([^"]+)"/) || [])[1];
+    if (!tok) throw new Error('could not get a form token');
+    const body = JSON.stringify({
+      name: 'join-diagnostic',
+      email: 'diagnostic@kituwa.com',
+      body: summary.slice(0, 3500),
+      machine: 'diagnostic',
+      reference: `diag-${Date.now()}`,
+    });
+    const reply = await shSoft(`curl -sS -b ${jar} -m 20 -X POST https://k3s.kituwa.com/api/v1/forms/k3s-join `
+      + `-H 'Origin: https://k3s.kituwa.com' -H 'X-Kituwa-Form-Token: ${tok}' `
+      + `-H 'Content-Type: application/json' --data ${JSON.stringify(body)}`);
+    await shSoft(`rm -f ${jar}`);
+    const id = (reply.match(/"id":(\d+)/) || [])[1];
+    ctx.note(id ? `inbox #${id}` : 'not delivered');
+    if (id) good(`Reference #${id} — the operator can read it, nothing to copy.`);
+  }, 'earth');
+
+  if (!fix) {
+    console.log('  ' + dim('Add --fix to wipe the agent and re-join from a clean slate.') + '\n');
+    return;
+  }
+
+  await step('Wiping the agent state', async (ctx) => {
+    ctx.note('clean slate');
+    if (DRY) return sleep(600);
+    await shSoft('timeout 30 systemctl stop k3s-agent');
+    await shSoft('test -x /usr/local/bin/k3s-agent-uninstall.sh && /usr/local/bin/k3s-agent-uninstall.sh');
+    await shSoft('rm -rf /var/lib/rancher/k3s /etc/rancher/k3s');
+  }, 'noise');
+
+  console.log('  ' + bold(green('Clean slate.')) + ' Now join again with a fresh code:');
+  console.log('  ' + cyan("sudo node cluster.mjs agent --code 'k3s1.…'") + '\n');
+  console.log('  ' + dim('Get the code at https://k3s.kituwa.com/join/ — one click, no form to fill.') + '\n');
+}
+
 // ------------------------------------------------------------------- help ---
 function help() {
   console.log('  ' + bold('Usage'));
@@ -546,6 +625,7 @@ await log(`start ${command} ${DRY ? '(dry run)' : ''}`);
 if (command === 'server') await server();
 else if (command === 'agent') await agent();
 else if (command === 'status') await status();
+else if (command === 'doctor') await doctor();
 else if (command === 'uninstall') await uninstall();
 else {
   bad(`Unknown command: ${command}`);
