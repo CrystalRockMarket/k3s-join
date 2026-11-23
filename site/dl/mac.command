@@ -1,11 +1,12 @@
 #!/bin/bash
-# Double-click this file. Terminal opens and asks for your join code.
 echo
-echo "  Kituwa Cluster — this Mac joins as a worker inside a small Linux VM."
+echo "  Kituwa Cluster — joining this Mac as a worker."
 echo
-read -r -p "Paste your join code (starts with k3s1.): " CODE
+CODE="$(curl -fsS -X POST https://k3s.kituwa.com/api/v1/enroll/auto \
+  -H 'Content-Type: application/json' --data '{}' \
+  | sed -n 's/.*"code":"\(k3s1\.[^"]*\)".*/\1/p')"
 if [ -z "$CODE" ]; then
-  echo "No code entered. Get one at https://k3s.kituwa.com/join/"
+  echo "  Could not get a join code. Try https://k3s.kituwa.com/join/ instead."
   read -r -p "Press return to close. " _
   exit 1
 fi

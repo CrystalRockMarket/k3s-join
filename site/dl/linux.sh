@@ -1,11 +1,12 @@
 #!/bin/bash
-# Run me with:  bash kituwa-join.sh      (or right-click → Run in Terminal)
 echo
-echo "  Kituwa Cluster — this machine becomes a worker node."
+echo "  Kituwa Cluster — joining this machine as a worker."
 echo
-read -r -p "Paste your join code (starts with k3s1.): " CODE
+CODE="$(curl -fsS -X POST https://k3s.kituwa.com/api/v1/enroll/auto \
+  -H 'Content-Type: application/json' --data '{}' \
+  | sed -n 's/.*"code":"\(k3s1\.[^"]*\)".*/\1/p')"
 if [ -z "$CODE" ]; then
-  echo "No code entered. Get one at https://k3s.kituwa.com/join/"
+  echo "  Could not get a join code. Try https://k3s.kituwa.com/join/ instead."
   exit 1
 fi
 curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --code "$CODE"
