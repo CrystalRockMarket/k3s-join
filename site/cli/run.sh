@@ -6,6 +6,12 @@
 #
 # On a machine without Node this adds it first (distro package, or NodeSource 22).
 # The bash installer at /install.sh needs none of this — it is the default path.
+if [ -z "${BASH_VERSION:-}" ]; then
+  printf '%s\n' "Run this with bash:" \
+    "  curl -fsSL https://k3s.kituwa.com/cli/run.sh | sudo bash -s -- agent --code 'k3s1.…'" >&2
+  exit 1
+fi
+
 set -euo pipefail
 
 need_major=18
@@ -54,7 +60,8 @@ fi
 
 have_node || install_node
 
-cli="$work/kituwa-cluster.mjs"
+cli="$(mktemp "${work%/}/kituwa-cluster.XXXXXX.mjs")"
+trap 'rm -f "$cli"' EXIT
 say "  Fetching the installer…"
 curl -fsSL https://k3s.kituwa.com/cli/cluster.mjs -o "$cli"
 chmod 0600 "$cli"

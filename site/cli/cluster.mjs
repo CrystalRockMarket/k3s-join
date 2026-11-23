@@ -151,7 +151,8 @@ function sh(cmd, env = {}) {
     p.stdout.on('data', (d) => (out += d));
     p.stderr.on('data', (d) => (err += d));
     p.on('close', (code) => {
-      log(`run   ${cmd} -> ${code} (${Date.now() - started}ms)`).catch(() => {});
+      const safe = cmd.replace(/tskey-[A-Za-z0-9_-]+/g, 'tskey-…');
+      log(`run   ${safe} -> ${code} (${Date.now() - started}ms)`).catch(() => {});
       if (code === 0) resolve(out.trim());
       else reject(new Error((err || out).trim().split('\n').slice(-4).join('\n') || `exit ${code}`));
     });
@@ -189,7 +190,7 @@ const warn = (t) => console.log('  ' + yellow('!') + ' ' + t);
 const bad = (t) => console.log('  ' + red('✖') + ' ' + t);
 
 // -------------------------------------------------------------- preflight ---
-async function preflight({ agent = false, url: forcedUrl } = {}) {
+async function preflight({ agent = false, url: forcedUrl, reach = true } = {}) {
   const problems = [];
   let warnings = 0;
 
@@ -211,7 +212,11 @@ async function preflight({ agent = false, url: forcedUrl } = {}) {
     ctx.note('memory and disk ok');
   }, 'dots12');
 
+  if (!reach) {
+    console.log('  ' + dim('network check deferred until the tailnet is joined'));
+  }
   await step('Checking network', async (ctx) => {
+    if (!reach) { ctx.note('tailnet not joined yet'); return; }
     if (agent) {
       const url = (forcedUrl || opt('--url') || '').replace(/\/$/, '');
       if (!/^https:\/\/[^\s]+$/.test(url)) problems.push('--url must look like https://SERVER:6443');
@@ -304,9 +309,10 @@ function decodeCode(raw) {
 
 async function joinWithCode(code) {
   const data = decodeCode(code);
-  const node = (data.node_name || os.hostname().split('.')[0]).toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 63);
+  const node = (data.node_name || os.hostname().split('.')[0]).toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63) || 'worker';
 
-  await preflight({ agent: true, url: data.server });
+  await preflight({ agent: true, url: data.server, reach: !data.tailscale_key });
 
   if (data.tailscale_key) {
     await step('Joining the private network', async (ctx) => {
@@ -337,13 +343,10 @@ async function joinWithCode(code) {
     if (DRY) return;
     if (data.tailscale_key && !ip) throw new Error('No tailnet address to advertise; cannot continue.');
     await sh('install -d -m 700 /etc/rancher/k3s');
-    await sh('umask 077; cat > /etc/rancher/k3s/token', { KITUWA_TOKEN: data.token }).catch(async () => {
-      await writeFile('/etc/rancher/k3s/token', data.token + '\n', { mode: 0o600 });
-      await chmod('/etc/rancher/k3s/token', 0o600);
-    });
+    await writeFile('/etc/rancher/k3s/token', data.token + '\n', { mode: 0o600 });
+    await chmod('/etc/rancher/k3s/token', 0o600);
     const lines = [
       `server: ${data.server}`,
-      `token: ${data.token}`,
       'token-file: /etc/rancher/k3s/token',
       `node-name: ${node}`,
     ];
@@ -360,8 +363,12 @@ async function joinWithCode(code) {
     ctx.note(data.server);
     if (DRY) return sleep(1200);
     if (state.agent) {
+      const keep = await shSoft('cat /var/lib/rancher/k3s/agent/node-password.txt 2>/dev/null');
       await shSoft('timeout 30 systemctl stop k3s-agent');
       await shSoft('rm -rf /var/lib/rancher/k3s/agent');
+      if (keep.trim()) {
+        await writeFile('/var/lib/rancher/k3s/agent/node-password.txt', keep.trim() + '\n', { mode: 0o600 });
+      }
       await sh('systemctl start --no-block k3s-agent');
       return;
     }
@@ -373,7 +380,9 @@ async function joinWithCode(code) {
     let renewed = false;
     for (let n = 1; n <= 60; n++) {
       ctx.note(`${n * 3}s`);
-      if ((await shSoft('systemctl is-active k3s-agent')) === 'active') return;
+      const live = await shSoft('systemctl is-active k3s-agent');
+      const ca = await shSoft('test -f /var/lib/rancher/k3s/agent/client-ca.crt && echo yes');
+      if (live === 'active' && ca.trim() === 'yes') return;
       const recent = await shSoft('journalctl -u k3s-agent --since "-2 min" --no-pager 2>/dev/null');
       if ((recent.match(/invalid bearer token|not authorized/g) || []).length >= 2) {
         if (!renewed && data.renew) {

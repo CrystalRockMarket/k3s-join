@@ -215,7 +215,7 @@ have() { command -v "$1" >/dev/null 2>&1; }
 
 run() {
   # run <command...> — obey --dry-run and report the command once.
-  printf '  %s%s%s\n' "$C_DIM" "$*" "$C_RESET"
+  printf '  %s%s%s\n' "$C_DIM" "$(printf '%s' "$*" | sed 's/tskey-[A-Za-z0-9_-]*/tskey-…/g')" "$C_RESET"
   [ "$DRY_RUN" = "1" ] && return 0
   "$@"
 }
@@ -245,6 +245,7 @@ CODE=""
 SERVER=""
 TOKEN=""
 TAILNET_KEY=""
+TAILNET_IP=""
 NODE_NAME=""
 TAINT=""
 LABEL=""
@@ -299,6 +300,7 @@ validate_inputs() {
 # ----------------------------------------------------------- preflight ------
 preflight() {
   step "checking this machine"
+  have curl || die "curl is required. Install it first:  sudo apt-get update && sudo apt-get install -y curl"
   [ "$(uname -s)" = "Linux" ] || die "this installer is for Linux. On macOS run install-macos.sh, on Windows run install.ps1"
   [ -d /run/systemd/system ] || die "systemd is required (Alpine and other non-systemd distros are not supported)"
   if [ -f /.dockerenv ] || grep -qaE '(docker|kubepods|lxc)' /proc/1/cgroup 2>/dev/null; then
@@ -333,9 +335,20 @@ ensure_tailscale() {
       run sh -c 'curl -fsSL https://tailscale.com/install.sh | sh'
     else
       spinner_start "installing Tailscale"
-      curl -fsSL https://tailscale.com/install.sh -o /tmp/kituwa-tailscale-install.sh
-      sh /tmp/kituwa-tailscale-install.sh >/dev/null
-      rm -f /tmp/kituwa-tailscale-install.sh
+      tspath="$(mktemp)"
+      if ! curl -fsSL --retry 3 https://tailscale.com/install.sh -o "$tspath"; then
+        rm -f "$tspath"
+        spinner_stop 1
+        die "cannot download the Tailscale installer — check this machine's internet connection."
+      fi
+      if ! sh "$tspath"; then
+        rm -f "$tspath"
+        spinner_stop 1
+        die "Tailscale did not install. On a freshly booted machine the package manager is
+often still busy; wait a minute and run the same command again, or install it by hand:
+  sudo apt-get update && sudo apt-get install -y tailscale"
+      fi
+      rm -f "$tspath"
       spinner_stop 0
       have tailscale || die "Tailscale install finished but the tailscale command is missing"
     fi
@@ -348,13 +361,17 @@ ensure_tailscale() {
   ip="$(tailnet_ipv4 || true)"
   if [ -z "$ip" ]; then
     say "  logging this machine in to the tailnet"
-    run tailscale up \
+    if ! run tailscale up \
       --authkey="$TAILNET_KEY" \
       --hostname="$NODE_NAME" \
       --advertise-tags="$KITUWA_TAG" \
       --accept-dns=false \
       --accept-routes=false \
-      --ssh=false
+      --ssh=false; then
+      die "Tailscale rejected this join code's tailnet key — it has expired or was
+already used. Get a fresh code at https://k3s.kituwa.com/join/ and run the same
+command again; nothing else on this machine needs changing."
+    fi
     local i=0
     while [ -z "$ip" ] && [ "$i" -lt 30 ]; do
       sleep 1
@@ -400,10 +417,9 @@ write_config() {
   chmod 0600 "$TOKEN_FILE"
   {
     printf 'server: %s\n' "${SERVER%/}"
-    printf 'token: %s\n' "$TOKEN"
     printf 'token-file: %s\n' "$TOKEN_FILE"
     printf 'node-name: %s\n' "$NODE_NAME"
-    printf 'node-ip: %s\n' "$TAILNET_IP"
+    if [ -n "$TAILNET_IP" ]; then printf 'node-ip: %s\n' "$TAILNET_IP"; fi
     if [ "$USE_TAILSCALE" = "1" ]; then
       printf 'flannel-iface: tailscale0\n'
     fi
@@ -432,6 +448,7 @@ renew_join_code() {
   code_payload="${reply#*\"code\":\"}"
   code_payload="${code_payload%%\"*}"
   [ -n "$code_payload" ] || return 1
+  TOKEN=""
   decode_code "$code_payload"
   new_token="$TOKEN"
   [ -n "$new_token" ] || return 1
@@ -453,8 +470,20 @@ install_k3s() {
     run timeout 30 systemctl stop k3s-agent || true
     run systemctl reset-failed k3s-agent || true
     if [ -d /var/lib/rancher/k3s/agent ]; then
+      # Keep the node password: the server already knows it. Deleting it makes
+      # the agent look like a duplicate hostname and it never joins.
+      if [ -f /var/lib/rancher/k3s/agent/node-password.txt ]; then
+        read -r NODE_PW < /var/lib/rancher/k3s/agent/node-password.txt || true
+      fi
       say "  clearing the agent credentials left by the earlier attempt"
       run rm -rf /var/lib/rancher/k3s/agent
+      if [ -n "${NODE_PW:-}" ]; then
+        run install -d -m 0700 /var/lib/rancher/k3s/agent
+        if [ "$DRY_RUN" != "1" ]; then
+          printf '%s' "$NODE_PW" > /var/lib/rancher/k3s/agent/node-password.txt
+          chmod 0600 /var/lib/rancher/k3s/agent/node-password.txt
+        fi
+      fi
     fi
     run systemctl start --no-block k3s-agent || true
     return 0
@@ -480,7 +509,7 @@ install_k3s() {
   # of a silent spinner for 70 MB. The official installer then skips its own
   # download and uses the verified file. If anything here fails we fall back to
   # the normal path, so this can only add feedback, never remove the install.
-  local arch_suffix="" rel_url sum_url sum_file got want
+  local arch_suffix="" rel_url sum_url got want
   case "$(uname -m)" in
     aarch64|arm64) arch_suffix="-arm64" ;;
     armv7l)        arch_suffix="-armhf" ;;
@@ -546,14 +575,15 @@ wait_for_agent() {
 
   local waited=0
   while [ "$waited" -lt 240 ]; do
-    if systemctl is-active --quiet k3s-agent && ! systemctl is-failed --quiet k3s-agent 2>/dev/null; then
+    if systemctl is-active --quiet k3s-agent && ! systemctl is-failed --quiet k3s-agent 2>/dev/null \
+       && [ -f /var/lib/rancher/k3s/agent/client-ca.crt ]; then
       spinner_stop 0
       ok "k3s-agent is running"
       break
     fi
     # A dead token fails fast; do not sit here pretending.
     if [ $((waited % 15)) -eq 0 ] && [ "$waited" -gt 0 ]; then
-      if [ "$(journalctl -u k3s-agent --since '-2 min' --no-pager 2>/dev/null | grep -ciE 'invalid bearer token|not authorized')" -ge 2 ]; then
+      if [ "$(journalctl -u k3s-agent --since '-2 min' --no-pager 2>/dev/null | grep -ciE 'invalid bearer token|not authorized|node password rejected|already exists|certificate is not yet valid')" -ge 2 ]; then
         if [ "$RENEWED" = "0" ]; then
           RENEWED=1
           spinner_stop 1
@@ -658,6 +688,7 @@ summary() {
 DRY_RUN=0
 ASSUME_YES=0
 CHECK_CODE=0
+RENEWED=0
 DO_DIAGNOSE=0
 DO_RESET=0
 USE_TAILSCALE=1
