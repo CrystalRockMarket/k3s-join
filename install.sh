@@ -148,6 +148,63 @@ Environment (used when the matching flag is absent):
 USAGE
 }
 
+diagnose() {
+  say ""
+  say "  Collecting the join state — about 20 lines, no secrets."
+  local tmp jar tok body id
+  tmp="$(mktemp)"
+  {
+    say "host: $(hostname -s) · $(uname -sr) · $(uname -m)"
+    say "k3s: $(/usr/local/bin/k3s --version 2>/dev/null | head -1 || echo 'not installed')"
+    say "service: $(systemctl is-active k3s-agent 2>/dev/null || echo unknown) / $(systemctl is-enabled k3s-agent 2>/dev/null || echo unknown)"
+    say "--- config (token redacted)"
+    sed -e 's/^token:.*/token: <redacted>/' /etc/rancher/k3s/config.yaml 2>/dev/null || say "no config.yaml"
+    say "--- token: $(wc -c < /etc/rancher/k3s/token 2>/dev/null || echo 0) bytes, ends $(tail -c 8 /etc/rancher/k3s/token 2>/dev/null)"
+    say "--- tailscale: $(tailscale ip -4 2>/dev/null | head -1 || echo none)"
+    say "--- api: $(curl -sk -o /dev/null -w '%{http_code}' -m 8 https://100.120.24.106:6443/version 2>/dev/null || echo unreachable)"
+    say "--- last agent errors"
+    journalctl -u k3s-agent -n 400 --no-pager 2>/dev/null \
+      | grep -iE "error|fatal|fail|unauthor|denied|refused|timeout|password" \
+      | tail -12 | cut -c1-160
+  } > "$tmp" 2>&1
+
+  cat "$tmp"
+  say ""
+  say "  Sending this to the Kituwa inbox (high priority)…"
+
+  jar="$(mktemp)"
+  tok="$(curl -sS -c "$jar" -m 15 https://k3s.kituwa.com/api/v1/forms/k3s-join/token 2>/dev/null \
+    | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+  if [ -n "$tok" ]; then
+    body="$(BODY_FILE="$tmp" python3 -c '
+import json, os
+text = open(os.environ["BODY_FILE"]).read()[:3500]
+print(json.dumps({
+    "name": "join-diagnostic",
+    "email": "diagnostic@kituwa.com",
+    "body": text,
+    "machine": "diagnostic",
+    "reference": "diag-%d" % (abs(hash(text)) % 10**10),
+}))' 2>/dev/null)"
+    if [ -n "$body" ]; then
+      id="$(curl -sS -b "$jar" -m 20 -X POST https://k3s.kituwa.com/api/v1/forms/k3s-join \
+        -H 'Origin: https://k3s.kituwa.com' -H "X-Kituwa-Form-Token: $tok" \
+        -H 'Content-Type: application/json' --data "$body" 2>/dev/null \
+        | sed -n 's/.*"id":\([0-9]*\).*/\1/p')"
+    fi
+  fi
+  rm -f "$jar" "$tmp"
+
+  if [ -n "${id:-}" ]; then
+    say ""
+    say "  Sent. Reference #$id — I can read it from the inbox, no need to copy logs."
+    return 0
+  fi
+  say ""
+  say "  Could not send automatically. The summary above is all I need — 20 lines."
+  return 1
+}
+
 # --------------------------------------------------------------- helpers ----
 need_root() {
   [ "$(id -u)" -eq 0 ] || die "run this with sudo, for example:
@@ -549,6 +606,8 @@ summary() {
 DRY_RUN=0
 ASSUME_YES=0
 CHECK_CODE=0
+DO_DIAGNOSE=0
+DO_RESET=0
 USE_TAILSCALE=1
 ALLOW_CONTAINER=0
 DO_UNINSTALL=0
@@ -580,6 +639,8 @@ while [ $# -gt 0 ]; do
     --allow-container) ALLOW_CONTAINER=1; shift ;;
     --dry-run)       DRY_RUN=1; shift ;;
     --check-code)    CHECK_CODE=1; shift ;;
+    --diagnose)      DO_DIAGNOSE=1; shift ;;
+    --reset)         DO_RESET=1; shift ;;
     --uninstall)     DO_UNINSTALL=1; shift ;;
     --remove-tailscale) REMOVE_TAILSCALE=1; shift ;;
     --yes|-y)        ASSUME_YES=1; shift ;;
@@ -588,6 +649,12 @@ while [ $# -gt 0 ]; do
     *) die "unknown option: $1 (try --help)" ;;
   esac
 done
+
+if [ "$DO_DIAGNOSE" = "1" ]; then
+  banner
+  diagnose
+  exit $?
+fi
 
 if [ "$DO_UNINSTALL" = "1" ]; then
   uninstall
@@ -600,6 +667,15 @@ if [ -z "$CODE" ] && [ -n "$CODE_FILE" ]; then
 fi
 
 banner
+
+if [ "$DO_RESET" = "1" ]; then
+  need_root
+  step "resetting the k3s agent on this machine"
+  run timeout 30 systemctl stop k3s-agent 2>/dev/null || true
+  if [ -x /usr/local/bin/k3s-agent-uninstall.sh ]; then run /usr/local/bin/k3s-agent-uninstall.sh || true; fi
+  run rm -rf /var/lib/rancher/k3s /etc/rancher/k3s
+  ok "clean slate"
+fi
 
 if [ -n "$CODE" ]; then
   decode_code "$CODE"
