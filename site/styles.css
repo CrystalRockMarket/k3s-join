@@ -375,7 +375,7 @@ tbody td:first-child { color: var(--ink); }
   .top-nav { gap: .8rem; font-size: .82rem; width: 100%; overflow-x: auto; padding-bottom: .2rem; }
   .hero { padding-top: 2rem; }
   .hero-actions .btn { flex: 1 1 auto; justify-content: center; }
-  pre code { font-size: .78rem; }
+  pre code { font-size: .78rem; white-space: pre-wrap; word-break: break-word; }
   .facts { grid-template-columns: 1fr 1fr; }
 }
 

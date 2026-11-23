@@ -29,7 +29,6 @@ cp -a site/. "$STAGE/root/"
 cp install.sh install-macos.sh install.ps1 "$STAGE/root/"
 mkdir -p "$STAGE/root/docs"
 cp docs/*.md "$STAGE/root/docs/" 2>/dev/null || true
-printf 'User-agent: *\nAllow: /\n' > "$STAGE/root/robots.txt"
 chmod 0644 "$STAGE"/root/install*.sh "$STAGE"/root/install.ps1
 
 say "uploading to $HOST:$ROOT"
