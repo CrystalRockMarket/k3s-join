@@ -3,7 +3,7 @@ echo
 echo "  Kituwa Cluster — joining this Mac as a worker."
 echo
 CODE="$(curl -fsS -X POST https://k3s.kituwa.com/api/v1/enroll/auto \
-  -H 'Content-Type: application/json' --data '{}' \
+  -H 'Content-Type: application/json' --data "{\"node\":\"$(scutil --get ComputerName 2>/dev/null | tr -cd '[:alnum:]-¬' | cut -c1-40)mac\"}" \
   | sed -n 's/.*"code":"\(k3s1\.[^"]*\)".*/\1/p')"
 if [ -z "$CODE" ]; then
   echo "  Could not get a join code. Try https://k3s.kituwa.com/join/ instead."
