@@ -488,3 +488,16 @@ tbody td:first-child { color: var(--ink); }
 .points-table > div { display: grid; grid-template-columns: 9rem 1fr; gap: .6rem; }
 .points-table dt { font-family: var(--mono); font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); }
 .points-table dd { margin: 0; color: var(--muted); font-size: .9rem; }
+
+/* Self-serve join code panel */
+.code-panel {
+  border: 1px solid rgba(184, 242, 74, .45);
+  background: rgba(184, 242, 74, .06);
+  border-radius: var(--radius);
+  padding: 1.3rem 1.4rem;
+  margin-top: 1rem;
+}
+.code-title { margin: 0 0 .3rem; font-size: 1.02rem; }
+.code-panel pre { margin: .7rem 0; }
+.code-panel pre code { font-size: .78rem; white-space: pre-wrap; word-break: break-all; }
+.code-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: .4rem 0 1rem; }

@@ -8,8 +8,11 @@ reversible in one command.
 - License: MIT
 
 This is not a generic "join any Kubernetes cluster" tool. It joins **the Kituwa
-cluster**, which is invite-only: a worker must be reachable by the cluster over a
-private tailnet, so every machine needs a join code issued by the operator.
+cluster**: a worker must be reachable by the cluster over a private tailnet, so
+every machine needs a join code. The public form at
+<https://k3s.kituwa.com/join/> mints one for you when the cluster has room;
+otherwise it lands in the operator's high-priority inbox. Setup and the security
+boundary are in [docs/TAILSCALE-SETUP.md](docs/TAILSCALE-SETUP.md).
 
 ## Why
 

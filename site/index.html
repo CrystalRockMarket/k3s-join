@@ -223,15 +223,19 @@
   <section class="band" id="get-code" aria-labelledby="code-h">
     <h2 id="code-h">Get a join code</h2>
     <p class="prose">
-      Joining is by invitation. A join code is a single line that carries the
-      cluster address, a bootstrap token limited to joining a worker, and a
-      tailnet key tagged for cluster use. Codes are issued per machine and can be
-      revoked at any time — revoking one removes that machine's access without
-      touching anyone else.
+      Fill in the form and your code appears on the spot: a single line carrying the
+      cluster address, an agent-only bootstrap token and a one-use tailnet key. If
+      the cluster is full or enrollment is closed, the same form lands in the
+      high-priority inbox and you get an answer by email.
+    </p>
+    <p class="prose">
+      Every machine is its own node: its own key, its own token, its own revocation.
+      A volunteer node is tainted, so it runs only workloads that are allowed on
+      volunteer hardware and never touches anything with secrets.
     </p>
     <div class="hero-actions">
-      <a class="btn primary" href="/join/">Ask for a join code</a>
-      <a class="btn" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">Read the source first</a>
+      <a class="btn primary" href="/join/">Get a join code</a>
+      <a class="btn" href="/points/">See the chart it joins</a>
     </div>
   </section>
 

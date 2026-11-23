@@ -113,6 +113,9 @@ SERVER=""
 TOKEN=""
 TAILNET_KEY=""
 NODE_NAME=""
+TAINT=""
+LABEL=""
+ROLE=""
 
 decode_code() {
   local raw="$1" payload
@@ -138,6 +141,9 @@ decode_code() {
   TOKEN="${TOKEN:-$(json_field token)}"
   TAILNET_KEY="${TAILNET_KEY:-$(json_field tailscale_key)}"
   node_hint="$(json_field node_name)"
+  TAINT="${TAINT:-$(json_field taint)}"
+  LABEL="${LABEL:-$(json_field label)}"
+  ROLE="${ROLE:-$(json_field role)}"
   if [ -z "$NODE_NAME" ] && [ -n "$node_hint" ]; then NODE_NAME="$node_hint"; fi
 }
 
@@ -263,6 +269,14 @@ write_config() {
     if [ "$USE_TAILSCALE" = "1" ]; then
       printf 'flannel-iface: tailscale0\n'
     fi
+    # A volunteer node never runs secret-bearing workloads: it joins tainted and
+    # labelled, so only workloads that explicitly tolerate the taint land on it.
+    if [ -n "$TAINT" ]; then
+      printf 'node-taint:\n  - %s\n' "$TAINT"
+    fi
+    if [ -n "$LABEL" ]; then
+      printf 'node-label:\n  - %s\n' "$LABEL"
+    fi
   } > "$CONFIG_FILE"
   chmod 0600 "$CONFIG_FILE"
   ok "$CONFIG_FILE and $TOKEN_FILE written 0600"
@@ -337,6 +351,9 @@ uninstall() {
 summary() {
   say ""
   printf '%s────────────────────────────────────────────────────────%s\n' "$C_DIM" "$C_RESET"
+  if [ -n "$TAINT" ]; then
+    say "   mode      volunteer (idle-only, tainted: $TAINT)"
+  fi
   if [ "$DRY_RUN" = "1" ]; then
     say " Dry run: this machine would now be a worker in the Kituwa cluster."
   else
@@ -439,6 +456,9 @@ if [ "$CHECK_CODE" = "1" ]; then
     say "  tailnet key   present (tskey-…)"
   else
     say "  tailnet key   not used (--no-tailscale)"
+  fi
+  if [ -n "$TAINT" ] || [ -n "$LABEL" ]; then
+    say "  mode          volunteer (taint: ${TAINT:-none}, label: ${LABEL:-none})"
   fi
   say ""
   say "This only reads the code; nothing was installed or changed."
