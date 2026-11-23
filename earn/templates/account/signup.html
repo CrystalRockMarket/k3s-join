@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Create an account — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow form-band">
+  <p class="eyebrow">Membership</p>
+  <h1>Create your account.</h1>
+  <p class="prose">An account is free. You need one to link a node, keep a balance and
+    redeem. Passkeys are offered first on the sign-in page; email and password is the
+    familiar path and is enabled for every account.</p>
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+  <form method="post" action="/account/signup/" class="stack form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Email
+      <input type="email" name="email" required maxlength="254" autocomplete="email" value="{{ email or '' }}">
+    </label>
+    <label>Display name <span class="note">shown on the leaderboard; not your email</span>
+      <input name="display_name" required minlength="3" maxlength="32" autocomplete="nickname" value="{{ display_name or '' }}">
+    </label>
+    <label>Password <span class="note">15–128 characters; a passphrase is ideal</span>
+      <input type="password" name="password" required minlength="15" maxlength="128" autocomplete="new-password">
+    </label>
+    <label class="checkline">
+      <input type="checkbox" name="accept" value="1" required>
+      I accept the <a href="/terms/">terms</a> and the <a href="/earn/rules/">programme rules</a>.
+    </label>
+    <button class="btn primary" type="submit">Create account</button>
+  </form>
+  <p class="note">Already have one? <a href="/account/login/?next=/earn/">Sign in</a>.
+    We send one confirmation email; nothing else is mailed unless you ask for a reset.</p>
+</section>
+{% endblock %}

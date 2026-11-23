@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Earn — Kituwa Cluster{% endblock %}</title>
+<meta name="description" content="Turn an idle machine into cluster capacity and redeem what you earn for Kituwa Premium.">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://k3s.kituwa.com/earn/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='earn.css') }}">
+<meta name="csrf-token" content="{{ csrf }}">
+<script defer src="{{ url_for('static', filename='passkeys.js') }}"></script>
+{% block head %}{% endblock %}
+</head>
+<body class="earn-body">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>k3s<span class="dim">.kituwa.com</span></span>
+  </a>
+  <nav class="top-nav">
+    <a href="/earn/">Earn</a>
+    <a href="/earn/rules/">Rules</a>
+    <a href="/earn/premium/">Premium</a>
+    {% if current_user %}
+      <a href="/account/">Account</a>
+      {% if current_user.is_operator %}<a href="/admin/">Operator</a>{% endif %}
+      <form method="post" action="/account/logout/" class="inline-form">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <button class="linklike" type="submit">Sign out</button>
+      </form>
+    {% else %}
+      <a href="/account/login/">Sign in</a>
+      <a class="ghost" href="/account/signup/">Create account</a>
+    {% endif %}
+  </nav>
+</header>
+<main id="main">
+{% block body %}{% endblock %}
+</main>
+<footer class="foot">
+  <div>
+    <p><strong>Kituwa Cluster Earn</strong> — compute in, premium time out.</p>
+    <p class="note">Points have no cash value and are not an investment. Premium is a digital membership with no cash value.</p>
+  </div>
+  <nav>
+    <a href="/">Cluster</a>
+    <a href="/points/">Points</a>
+    <a href="/earn/rules/">Programme rules</a>
+    <a href="/earn/docs/">API</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="/watchdog/">Status</a>
+  </nav>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

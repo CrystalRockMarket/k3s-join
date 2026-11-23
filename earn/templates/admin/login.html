@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Operator sign-in — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Operators only</p>
+  <h1>Sign in with Kituwa ID.</h1>
+  <p class="prose">The Earn console is an operator surface. It uses Pocket ID with a
+    passkey; consumer passwords cannot open it.</p>
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+  <p><a class="btn primary" href="/admin/oidc/start">Continue with Kituwa ID</a></p>
+  <p class="note">Not an operator? The member area is at <a href="/account/login/">sign in</a>.</p>
+</section>
+{% endblock %}

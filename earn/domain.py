@@ -12,9 +12,6 @@ from werkzeug.security import safe_join  # noqa: F401  (kept for import parity)
 
 from . import db, security
 
-PHYSICAL_FIELDS = ("name", "line1", "line2", "city", "region", "postal", "country", "phone")
-
-
 class DomainError(ValueError):
     """A user-facing refusal. The message is safe to show verbatim."""
 
@@ -223,35 +220,17 @@ def reward(conn: sqlite3.Connection, slug: str):
     return conn.execute("SELECT * FROM rewards WHERE slug=?", (slug,)).fetchone()
 
 
-def validate_address(form: dict) -> dict:
-    clean = {}
-    for key in PHYSICAL_FIELDS:
-        value = str(form.get(key, "") or "").strip()
-        limit = 120 if key in {"name", "line1", "line2", "city", "region"} else 40
-        if key == "phone":
-            limit = 40
-        if len(value) > limit:
-            raise DomainError(f"{key.replace('_', ' ').title()} is too long.")
-        clean[key] = value
-    for required in ("name", "line1", "city", "postal", "country"):
-        if not clean[required]:
-            raise DomainError("Name, address line 1, city, postal code and country are required.")
-    clean["country"] = clean["country"].upper()
-    if not security.COUNTRY_RE.match(clean["country"]):
-        raise DomainError("Country must be a two-letter code (US, GB, DE…).")
-    return clean
-
-
 def redeem(conn: sqlite3.Connection, user: dict, slug: str, form: dict) -> dict:
     if not user.get("email_verified_at"):
         raise DomainError("Confirm your email before redeeming points.")
     item = reward(conn, slug)
     if item is None or not item["active"]:
         raise DomainError("That reward is not available.")
+    if item["kind"] != "digital":
+        raise DomainError("Only Kituwa Premium subscriptions are available.")
     cost = float(item["cost_points"])
     if cost <= 0:
         raise DomainError("That reward is not priced.")
-    address = validate_address(form) if item["kind"] == "physical" else {}
     redemption_id = security.new_id()
     now = db.now()
     conn.execute("BEGIN IMMEDIATE")
@@ -267,51 +246,36 @@ def redeem(conn: sqlite3.Connection, user: dict, slug: str, form: dict) -> dict:
             )
             if updated.rowcount != 1:
                 raise DomainError("That reward is out of stock.")
-        if item["kind"] == "physical":
-            pending = conn.execute(
-                "SELECT COUNT(*) AS n FROM redemptions WHERE user_id=? AND"
-                " status IN ('pending','approved')", (user["id"],)
-            ).fetchone()["n"]
-            if pending >= _cfg().max_pending_orders:
-                raise DomainError("You have too many open orders. Wait for one to ship.")
-        status = "issued" if item["kind"] == "digital" else "pending"
-        code = ""
-        code_hash = ""
-        code_enc = ""
-        expires = None
-        if item["kind"] == "digital":
-            code = "kprem_" + secrets.token_urlsafe(32)
-            code_hash = security.digest(code)
-            code_enc = security.encrypt(code)
-            site = item["site"] or "premium"
-            current = conn.execute(
-                "SELECT MAX(expires_at) AS until FROM premium_grants WHERE user_id=?"
-                " AND site=? AND revoked_at IS NULL AND expires_at>?", (user["id"], site, now)
-            ).fetchone()["until"]
-            start = datetime.now(timezone.utc)
-            if current:
-                try:
-                    parsed = datetime.strptime(current, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-                    start = max(start, parsed)
-                except ValueError:
-                    pass
-            until = (start + timedelta(days=int(item["term_days"] or 30))).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
-            expires = until
-            conn.execute(
-                "INSERT INTO premium_grants(id,user_id,redemption_id,site,plan,token_hash,"
-                "token_enc,issued_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)",
-                (security.new_id(), user["id"], redemption_id, site, item["plan"] or "premium",
-                 code_hash, code_enc, now, until),
-            )
+        code = "kprem_" + secrets.token_urlsafe(32)
+        code_hash = security.digest(code)
+        code_enc = security.encrypt(code)
+        site = item["site"] or "premium"
+        current = conn.execute(
+            "SELECT MAX(expires_at) AS until FROM premium_grants WHERE user_id=?"
+            " AND site=? AND revoked_at IS NULL AND expires_at>?", (user["id"], site, now)
+        ).fetchone()["until"]
+        start = datetime.now(timezone.utc)
+        if current:
+            try:
+                parsed = datetime.strptime(current, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                start = max(start, parsed)
+            except ValueError:
+                pass
+        until = (start + timedelta(days=int(item["term_days"] or 30))).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        conn.execute(
+            "INSERT INTO premium_grants(id,user_id,redemption_id,site,plan,token_hash,"
+            "token_enc,issued_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            (security.new_id(), user["id"], redemption_id, site, item["plan"] or "premium",
+             code_hash, code_enc, now, until),
+        )
         conn.execute(
             "INSERT INTO redemptions(id,user_id,reward_slug,points,status,address_enc,"
             "code_hash,code_enc,expires_at,created_at,updated_at)"
             " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-            (redemption_id, user["id"], slug, cost, status,
-             security.encrypt(json.dumps(address)) if address else "",
-             code_hash, code_enc, expires, now, now),
+            (redemption_id, user["id"], slug, cost, "issued", "",
+             code_hash, code_enc, until, now, now),
         )
         conn.execute(
             "INSERT INTO ledger(user_id,node,kind,points,ref,memo,created_at)"
@@ -328,7 +292,7 @@ def redeem(conn: sqlite3.Connection, user: dict, slug: str, form: dict) -> dict:
     except sqlite3.Error:
         conn.execute("ROLLBACK")
         raise
-    return {"id": redemption_id, "status": status, "code": code, "expires_at": expires}
+    return {"id": redemption_id, "status": "issued", "code": code, "expires_at": until}
 
 
 # --------------------------------------------------------------------------- #
@@ -386,39 +350,39 @@ def adjust(conn: sqlite3.Connection, actor: str, user_id: str, points: float, me
 
 def set_status(conn: sqlite3.Connection, actor: str, redemption_id: str, status: str,
                tracking: str = "", note: str = "") -> None:
-    allowed = {"approved", "shipped", "delivered", "cancelled", "issued"}
+    allowed = {"issued", "cancelled", "revoked"}
     if status not in allowed:
         raise DomainError("Unknown status.")
     row = conn.execute("SELECT * FROM redemptions WHERE id=?", (redemption_id,)).fetchone()
     if row is None:
         raise DomainError("No such redemption.")
-    if row["status"] == "cancelled":
-        raise DomainError("That redemption is already cancelled.")
+    if row["status"] in {"cancelled", "revoked"}:
+        raise DomainError("That subscription is already closed.")
     conn.execute("BEGIN IMMEDIATE")
     try:
         conn.execute(
-            "UPDATE redemptions SET status=?, tracking=?, note=?, updated_at=? WHERE id=?",
-            (status, tracking.strip()[:120], note.strip()[:500], db.now(), redemption_id),
+            "UPDATE redemptions SET status=?, note=?, updated_at=? WHERE id=?",
+            (status, note.strip()[:500], db.now(), redemption_id),
         )
         if status == "cancelled":
             conn.execute(
                 "INSERT OR IGNORE INTO ledger(user_id,node,kind,points,ref,memo,created_at)"
                 " VALUES(?,?,?,?,?,?,?)",
                 (row["user_id"], "", "refund", float(row["points"]),
-                 f"refund:{redemption_id}", "Redemption cancelled", db.now()),
+                 f"refund:{redemption_id}", "Premium subscription cancelled", db.now()),
             )
-            if row["code_hash"]:
-                conn.execute(
-                    "UPDATE premium_grants SET revoked_at=? WHERE redemption_id=?",
-                    (db.now(), redemption_id),
-                )
             if row["reward_slug"]:
                 conn.execute(
-                    "UPDATE rewards SET stock=COALESCE(stock,0)+1 WHERE slug=? AND stock IS NOT NULL",
+                    "UPDATE rewards SET stock=stock+1 WHERE slug=? AND stock IS NOT NULL",
                     (row["reward_slug"],),
                 )
+        if status in {"cancelled", "revoked"}:
+            conn.execute(
+                "UPDATE premium_grants SET revoked_at=? WHERE redemption_id=?",
+                (db.now(), redemption_id),
+            )
         conn.execute("INSERT INTO audit(actor,action,target,detail,created_at) VALUES(?,?,?,?,?)",
-                     (actor, "redemption." + status, redemption_id, tracking[:120], db.now()))
+                     (actor, "subscription." + status, redemption_id, note[:120], db.now()))
         conn.execute("COMMIT")
     except sqlite3.Error:
         conn.execute("ROLLBACK")

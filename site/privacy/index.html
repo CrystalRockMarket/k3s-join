@@ -18,6 +18,7 @@
   <nav class="top-nav">
     <a href="/">Home</a>
     <a href="/cluster/">Cluster</a>
+    <a href="/earn/">Earn</a>
     <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
   </nav>
 </header>
@@ -26,8 +27,9 @@
   <section class="hero compact">
     <p class="eyebrow">Privacy</p>
     <h1>What is collected</h1>
-    <p class="lede">Short version: page views, nothing personal, nothing sold, and no
-      third-party tracker. The installer collects nothing at all.</p>
+    <p class="lede">Short version: page views on the public pages, account data only
+      if you create one for Earn, nothing sold, and no third-party tracker. The
+      installer collects nothing at all.</p>
   </section>
 
   <section class="band flush">
@@ -41,6 +43,25 @@
     <p class="prose">Server logs on the host record the usual request line — IP
       address, path, user agent, timestamp — and are used for security and keeping
       the service up.</p>
+  </section>
+
+  <section class="band">
+    <h2>Member accounts (Earn)</h2>
+    <p class="prose">Creating an account is optional and only needed for the
+      <a href="/earn/">Earn programme</a>. We store the email address you enter, a
+      display name, an Argon2id hash of your password (never the password), the public
+      half of any passkey you add, and the session cookie that keeps you signed in.
+      The cookie is host-only, Secure and HttpOnly.</p>
+    <p class="prose">When you link a node we store its cluster node name, the linking
+      time and the published points total at that moment. The ledger records the
+      points credited, redeemed or adjusted, with a reference and a reason. Premium
+      redemptions store a hash and an encrypted copy of the subscription token so the
+      account can show it to you. There are no shipping addresses and no physical
+      orders.</p>
+    <p class="prose">Security records keep the IP address and user agent of a session
+      and the operator actions taken on an account. They are used to rate-limit abuse,
+      investigate fraud and answer a deletion request. Earn account pages carry no
+      third-party analytics script.</p>
   </section>
 
   <section class="band">
@@ -60,9 +81,11 @@
   <section class="band">
     <h2>Leaving and removal</h2>
     <p class="prose">Running the uninstall command removes the agent, its config and,
-      with <code>--remove-tailscale</code>, the tailnet login. To have a node's
-      analytics or cluster records removed as well, use the contact page and name the
-      node.</p>
+      with <code>--remove-tailscale</code>, the tailnet login. To delete an Earn
+      account and its ledger, use the contact page from the account's email address
+      and name the account. An operator will remove the account, its sessions, passkeys
+      and unspent balance; redemption records can be kept in a minimal audit form where
+      needed to prevent fraud.</p>
     <p class="note">Questions, or a request to delete something:
       <a href="https://services.kituwa.com/quote">services.kituwa.com/quote</a>.</p>
   </section>

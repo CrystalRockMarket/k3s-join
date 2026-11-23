@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Confirm your email — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Email confirmation</p>
+  <h1>Confirm this address.</h1>
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+  {% if token %}
+  <p class="prose">This confirms the address on your Kituwa Cluster account. The link
+    works once, and opening it in a mail scanner does nothing until you press the button.</p>
+  <form method="post" action="/account/verify/" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button class="btn primary" type="submit">Confirm my email</button>
+  </form>
+  {% else %}
+  <p class="prose">This link is invalid or has expired. Sign in and ask for a new one from
+    the confirmation page.</p>
+  <p><a class="btn" href="/account/login/">Sign in</a></p>
+  {% endif %}
+</section>
+{% endblock %}

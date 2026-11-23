@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Choose a new password — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Account recovery</p>
+  <h1>Choose a new password.</h1>
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+  {% if token %}
+  <p class="prose">At least 15 characters. This link works once and does not sign you in
+    automatically; after changing the password, sign in normally.</p>
+  <form method="post" action="/account/reset/" class="stack form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <label>New password
+      <input type="password" name="password" required minlength="15" maxlength="128" autocomplete="new-password">
+    </label>
+    <button class="btn primary" type="submit">Change password</button>
+  </form>
+  {% else %}
+  <p class="prose">This link is invalid or has expired. Request a new one.</p>
+  <p><a class="btn" href="/account/forgot/">Start again</a></p>
+  {% endif %}
+</section>
+{% endblock %}

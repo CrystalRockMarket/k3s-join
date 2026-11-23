@@ -364,18 +364,21 @@ def passkey_register_begin():
     refused = security.require_csrf()
     if refused:
         return refused
+    conn = db.connect(_cfg().db_path)
+    try:
+        row = conn.execute("SELECT webauthn_handle FROM users WHERE id=?", (g.user["id"],)).fetchone()
+        handle = row["webauthn_handle"] if row else None
+        if not handle:
+            handle = secrets.token_bytes(32)
+            conn.execute("UPDATE users SET webauthn_handle=? WHERE id=?", (handle, g.user["id"]))
+        g.user["webauthn_handle"] = handle
+    finally:
+        conn.close()
     try:
         flow_id, options = passkeys.begin_registration(g.user)
     except Exception:
         current_app.logger.warning("passkey registration begin failed")
         return jsonify({"ok": False, "error": "A passkey could not be started."}), 503
-    if not g.user.get("webauthn_handle"):
-        conn = db.connect(_cfg().db_path)
-        try:
-            conn.execute("UPDATE users SET webauthn_handle=? WHERE id=?",
-                         (secrets.token_bytes(32), g.user["id"]))
-        finally:
-            conn.close()
     return jsonify({"ok": True, "flow": flow_id, "options": json.loads(options)})
 
 

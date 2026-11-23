@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Confirm your email — Earn{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">One step left</p>
+  <h1>Confirm your email to start earning.</h1>
+  <p class="prose">We sent a confirmation link to <strong>{{ current_user.email }}</strong>.
+    Open it once, then come back. Earning can begin before confirmation, but redeeming
+    points requires a verified address.</p>
+  <form method="post" action="/account/verify/resend/" class="stack">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <button class="btn primary" type="submit">Send the link again</button>
+  </form>
+  <p class="note">Wrong address? <a href="/account/">Open your account</a> or contact
+    <a href="mailto:support@kituwa.com">support@kituwa.com</a>.</p>
+</section>
+{% endblock %}

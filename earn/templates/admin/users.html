@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Members — Earn operator{% endblock %}
+{% block body %}
+<section class="band">
+  <p class="eyebrow">Operator</p>
+  <h1>Members</h1>
+  {% include "admin/_nav.html" %}
+  <form method="get" action="/admin/users/" class="inline-form filter">
+    <label>Search <input name="q" value="{{ query }}" maxlength="80" placeholder="email or display name"></label>
+    <button class="btn small" type="submit">Search</button>
+  </form>
+  {% if request.args.get('error') %}<p class="flash error">{{ request.args.get('error') }}</p>{% endif %}
+</section>
+
+<section class="band">
+  {% if rows %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Member</th><th>Email</th><th>Verified</th><th class="num">Balance</th><th>Nodes</th><th>Adjust</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.display_name }}{% if row.is_operator %} <span class="pill">op</span>{% endif %}</td>
+          <td class="note">{{ row.email }}</td>
+          <td>{{ row.email_verified_at|day }}</td>
+          <td class="num">{{ row.balance|pts }}</td>
+          <td>{{ row.nodes }}</td>
+          <td>
+            <form method="post" action="/admin/users/{{ row.id }}/adjust" class="inline-form adjust">
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <input name="points" type="number" step="1" required placeholder="±points" class="short">
+              <input name="memo" required maxlength="200" placeholder="reason" class="short">
+              <button class="linklike" type="submit">Apply</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="prose">No members match.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Your account — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Account</p>
+      <h1>{{ current_user.display_name }}</h1>
+      <p class="note">{{ current_user.email }}
+        {% if current_user.email_verified_at %}
+          <span class="pill ok">verified</span>
+        {% else %}
+          <span class="pill warn">unverified</span>
+          <a class="small-link" href="/account/verify-notice/">confirm now</a>
+        {% endif %}
+      </p>
+    </div>
+    <div class="balance-actions">
+      <a class="btn primary" href="/earn/">Earn</a>
+      <a class="btn" href="/earn/claim/">Link a node</a>
+    </div>
+  </div>
+  {% if saved %}<p class="flash">Saved.</p>{% endif %}
+  {% if request.args.get('error') %}<p class="flash error">{{ request.args.get('error') }}</p>{% endif %}
+</section>
+
+<section class="band split">
+  <div class="card">
+    <h2>Profile</h2>
+    <form method="post" action="/account/profile/" class="stack form">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label>Display name
+        <input name="display_name" required minlength="3" maxlength="32" value="{{ current_user.display_name }}">
+      </label>
+      <label class="checkline">
+        <input type="checkbox" name="leaderboard" value="1" {% if current_user.leaderboard %}checked{% endif %}>
+        Show me on the Earn leaderboard
+      </label>
+      <button class="btn" type="submit">Save profile</button>
+    </form>
+    <p class="note">Your email is never shown publicly. The leaderboard shows the display
+      name and points only.</p>
+  </div>
+
+  <div class="card">
+    <h2>Password</h2>
+    <p class="note">Sessions are revoked after a change, here and on every other device.</p>
+    <form method="post" action="/account/password/" class="stack form">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label>Current password
+        <input type="password" name="current" required maxlength="128" autocomplete="current-password">
+      </label>
+      <label>New password <span class="note">15–128 characters</span>
+        <input type="password" name="new" required minlength="15" maxlength="128" autocomplete="new-password">
+      </label>
+      <button class="btn" type="submit">Change password</button>
+    </form>
+  </div>
+</section>
+
+<section class="band">
+  <h2>Passkeys</h2>
+  <p class="prose">A passkey signs you in without a password and resists phishing. It is
+    offered first on the sign-in page. Add one on each device you use.</p>
+  {% if keys %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Added</th><th>Last used</th><th>Synced</th></tr></thead>
+      <tbody>
+      {% for key in keys %}
+        <tr><td>{{ key.label }}</td><td>{{ key.created_at|day }}</td>
+            <td>{{ key.last_used_at|day }}</td>
+            <td>{{ "yes" if key.backed_up else "no" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="note">No passkeys yet.</p>
+  {% endif %}
+  <p><button class="btn" id="passkey-add" type="button">Add a passkey</button></p>
+  <p class="note" id="passkey-status" role="status"></p>
+</section>
+
+<section class="band split">
+  <div>
+    <h2>Earning</h2>
+    <dl class="facts">
+      <div><dt>Balance</dt><dd>{{ balance|pts }}</dd></div>
+      <div><dt>Nodes</dt><dd>{{ nodes|length }}</dd></div>
+    </dl>
+    {% if nodes %}
+    <ul class="checks">
+      {% for node in nodes %}<li><code>{{ node.node }}</code> · since {{ node.linked_at|day }}</li>{% endfor %}
+    </ul>
+    {% else %}
+    <p class="note">No node linked. <a href="/earn/claim/">Link one</a> to start earning.</p>
+    {% endif %}
+  </div>
+  <div>
+    <h2>Premium</h2>
+    {% if grants %}
+      {% for grant in grants %}<p><span class="pill ok">Active</span> {{ grant.plan }} until {{ grant.expires_at|day }}</p>{% endfor %}
+      <a class="small-link" href="/earn/premium/">Member page</a>
+    {% else %}
+      <p class="note">None active. <a href="/earn/redeem/premium-30/">Redeem 30 days</a>.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="band">
+  <h2>Redemptions</h2>
+  {% if redemptions %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Item</th><th class="num">Points</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for row in redemptions %}
+        <tr>
+          <td>{{ row.created_at|day }}</td>
+          <td>{{ row.title }}</td>
+          <td class="num">{{ row.points|pts }}</td>
+          <td><span class="pill">{{ row.status }}</span></td>
+          <td><a class="small-link" href="/earn/receipt/{{ row.id }}/">Open</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="note">Nothing redeemed yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

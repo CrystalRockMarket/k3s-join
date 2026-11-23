@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Programme rules — Earn{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Kituwa Cluster Earn</p>
+  <h1>Programme rules</h1>
+  <p class="prose">These are the rules as the system actually enforces them. Where a
+    number can change, the live page shows the current value.</p>
+
+  <h2>Earning</h2>
+  <ul class="checks">
+    <li><strong>One point is one CPU-second</strong> of real work performed for Kituwa,
+      measured by the worker's points agent. Completed work units add the published
+      bonus: {{ programme.get('job_points', {}).get('job_run', 10) }} points for a
+      scheduled job, {{ programme.get('job_points', {}).get('deploy', 25) }} for a
+      deployment, {{ programme.get('job_points', {}).get('build', 50) }} for a build.</li>
+    <li><strong>Volunteer machines earn only while idle.</strong> The idle gate cordons a
+      node when its load crosses 60% of its cores, so nothing new is scheduled while you
+      are using the machine. Running pods are not killed.</li>
+    <li><strong>Only linked nodes earn for an account.</strong> Linking records the node's
+      current published total as the baseline; only work after that moment is credited to
+      you. Points already in the ledger before linking stay with the cluster.</li>
+    <li><strong>One account per person.</strong> The default node limit is one; the operator
+      can raise it for a member who runs several machines. Claim codes are single-use and
+      expire after 30 minutes.</li>
+    <li><strong>The ledger wins.</strong> Credit is the difference between two published
+      per-node totals. A missing or stale publication credits nothing; it is never
+      estimated.</li>
+  </ul>
+
+  <h2>Redeeming</h2>
+  <ul class="checks">
+    <li><strong>Premium is the only reward.</strong> There are no physical goods, no
+      shipping and no address collection. Every reward is digital time on Kituwa
+      Premium.</li>
+    <li><strong>Issued immediately.</strong> The cost is deducted and the premium token is
+      created in one transaction. Time stacks on an active grant.</li>
+    <li><strong>Email must be confirmed</strong> before any redemption. Earning can start
+      before confirmation.</li>
+    <li><strong>Cancellation.</strong> The operator can cancel a grant for a full point
+      refund and revoke the token; a revocation for abuse does not refund. Once a token
+      has been used elsewhere, cancelling it stops future checks but cannot erase access
+      already granted.</li>
+  </ul>
+
+  <h2>What points are not</h2>
+  <p class="prose">Points are a loyalty credit, not money, a security, a token on a chain or
+    an investment. They cannot be sold, transferred or exchanged for cash, and they confer
+    no ownership or governance right. The programme can be paused or changed; accrued
+    points are honoured for redemption while it runs.</p>
+
+  <h2>Fair use</h2>
+  <p class="prose">Claim only machines you own or are authorised to operate. Automating
+    signups, farming idle nodes you do not control, or manipulating the ledger is grounds
+    for removing the account and its balance. The operator can adjust a balance with a
+    written reason; every adjustment is in the audit log.</p>
+
+  <h2>Current numbers</h2>
+  <dl class="facts four">
+    <div><dt>Members</dt><dd>{{ stats.members }}</dd></div>
+    <div><dt>Nodes linked</dt><dd>{{ stats.nodes }}</dd></div>
+    <div><dt>Points earned</dt><dd>{{ stats.earned|pts }}</dd></div>
+    <div><dt>Points redeemed</dt><dd>{{ stats.redeemed|pts }}</dd></div>
+  </dl>
+  <p class="note">Questions: <a href="mailto:support@kituwa.com">support@kituwa.com</a>.
+    Privacy: <a href="/privacy/">k3s.kituwa.com/privacy</a>.</p>
+</section>
+{% endblock %}

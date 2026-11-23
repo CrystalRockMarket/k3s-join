@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Rewards — Earn operator{% endblock %}
+{% block body %}
+<section class="band">
+  <p class="eyebrow">Operator</p>
+  <h1>Premium rewards</h1>
+  {% include "admin/_nav.html" %}
+  {% if request.args.get('error') %}<p class="flash error">{{ request.args.get('error') }}</p>{% endif %}
+  <p class="note">Only digital premium rewards exist. There are no physical items and no
+    shipping. A blank batch cap means unlimited. Changing a price affects new
+    redemptions only.</p>
+</section>
+
+<section class="band">
+  {% for row in rows %}
+  <article class="card reward-edit">
+    <form method="post" action="/admin/rewards/save" class="stack form compact">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="slug" value="{{ row.slug }}">
+      <input type="hidden" name="kind" value="digital">
+      <div class="section-head">
+        <h2><code>{{ row.slug }}</code></h2>
+        <label class="checkline"><input type="checkbox" name="active" value="1" {% if row.active %}checked{% endif %}> active</label>
+      </div>
+      <label>Title <input name="title" maxlength="120" required value="{{ row.title }}"></label>
+      <label>Description <textarea name="description" rows="2" maxlength="500">{{ row.description }}</textarea></label>
+      <div class="row">
+        <label>Cost <input name="cost_points" type="number" min="1" step="1" value="{{ row.cost_points|int }}"></label>
+        <label>Batch cap <input name="stock" type="number" min="0" step="1" value="{{ row.stock if row.stock is not none else '' }}"></label>
+        <label>Term days <input name="term_days" type="number" min="0" step="1" value="{{ row.term_days }}"></label>
+        <label>Sort <input name="sort_order" type="number" value="{{ row.sort_order }}"></label>
+      </div>
+      <div class="row">
+        <label>Site <input name="site" maxlength="60" value="{{ row.site }}"></label>
+        <label>Plan <input name="plan" maxlength="60" value="{{ row.plan }}"></label>
+      </div>
+      <button class="btn small" type="submit">Save reward</button>
+    </form>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="band">
+  <h2>Add a premium reward</h2>
+  <form method="post" action="/admin/rewards/save" class="stack form compact">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <input type="hidden" name="kind" value="digital">
+    <div class="row">
+      <label>Slug <input name="slug" required pattern="[a-z0-9][a-z0-9-]{1,39}" placeholder="searchall-30"></label>
+      <label>Title <input name="title" required maxlength="120" placeholder="SearchAll Premium — 30 days"></label>
+      <label>Site <input name="site" required maxlength="60" placeholder="searchall"></label>
+    </div>
+    <div class="row">
+      <label>Cost <input name="cost_points" type="number" min="1" required></label>
+      <label>Batch cap <input name="stock" type="number" min="0" placeholder="blank = unlimited"></label>
+      <label>Term days <input name="term_days" type="number" min="1" value="30"></label>
+      <label>Sort <input name="sort_order" type="number" value="100"></label>
+    </div>
+    <label>Plan <input name="plan" maxlength="60" placeholder="premium"></label>
+    <label>Description <textarea name="description" rows="2" maxlength="500"></textarea></label>
+    <button class="btn primary small" type="submit">Create reward</button>
+  </form>
+  <p class="note">Adding a per-site reward here does not connect the site. It must also
+    call the verifier; until then the Premium page lists it as queued.</p>
+</section>
+{% endblock %}

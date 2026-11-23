@@ -90,11 +90,13 @@ spinner_start() {
     done
   ) &
   SPIN_PID=$!
+  return 0
 }
 spinner_stop() {
   [ -n "$SPIN_PID" ] || return 0
-  kill "$SPIN_PID" 2>/dev/null
-  wait "$SPIN_PID" 2>/dev/null
+  set +e
+  kill "$SPIN_PID" 2>/dev/null || true
+  wait "$SPIN_PID" 2>/dev/null || true
   SPIN_PID=""
   printf '\r\033[2K'
   if [ "${1:-0}" = "0" ]; then
@@ -102,6 +104,8 @@ spinner_stop() {
   else
     printf '  %sfail%s %s  %s\n' "$C_ERR" "$C_RESET" "$SPIN_LABEL" "$((SECONDS - SPIN_START))s"
   fi
+  set -e
+  return 0
 }
 # spinner_run "label" command... — runs the command in this shell, spins around it
 spinner_run() {
@@ -589,6 +593,14 @@ wait_for_agent() {
     if systemctl is-active --quiet k3s-agent && ! systemctl is-failed --quiet k3s-agent 2>/dev/null \
        && [ -f /var/lib/rancher/k3s/agent/client-ca.crt ]; then
       spinner_stop 0
+      say ""
+      fg256 51 '  ██╗  ██╗██╗████████╗██╗   ██╗██╗    ██╗ █████╗ '; printf '\n'
+      fg256 45 '  ██║ ██╔╝██║╚══██╔══╝██║   ██║██║    ██║██╔══██╗'; printf '\n'
+      fg256 39 '  █████╔╝ ██║   ██║   ██║   ██║██║ █╗ ██║███████║'; printf '\n'
+      fg256 33 '  ██╔═██╗ ██║   ██║   ██║   ██║██║███╗██║██╔══██║'; printf '\n'
+      fg256 27 '  ██║  ██╗██║   ██║   ╚██████╔╝╚███╔███╔╝██║  ██║'; printf '\n'
+      fg256 21 '  ╚═╝  ╚═╝╚═╝   ╚═╝    ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═╝'; printf '\n'
+      say ""
       ok "k3s-agent is running"
       break
     fi

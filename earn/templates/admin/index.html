@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Operator — Earn{% endblock %}
+{% block body %}
+<section class="band">
+  <p class="eyebrow">Operator</p>
+  <h1>Earn console</h1>
+  {% include "admin/_nav.html" %}
+  {% if request.args.get('error') %}<p class="flash error">{{ request.args.get('error') }}</p>{% endif %}
+  <dl class="facts four">
+    <div><dt>Members</dt><dd>{{ counts.members }}</dd></div>
+    <div><dt>Nodes linked</dt><dd>{{ counts.nodes }}</dd></div>
+    <div><dt>Active grants</dt><dd>{{ counts.active }}</dd></div>
+    <div><dt>All redemptions</dt><dd>{{ counts.issued }}</dd></div>
+  </dl>
+  <p class="note">Net ledger balance across all members: {{ counts.balance|pts }} points
+    (earned minus redeemed and adjusted).</p>
+</section>
+
+<section class="band">
+  <h2>Recent redemptions</h2>
+  {% if recent %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>Member</th><th>Item</th><th class="num">Points</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for row in recent %}
+        <tr><td>{{ row.created_at|day }}</td><td>{{ row.display_name }}</td><td>{{ row.title }}</td>
+            <td class="num">{{ row.points|pts }}</td><td><span class="pill">{{ row.status }}</span></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="note">None yet.</p>{% endif %}
+</section>
+
+<section class="band">
+  <h2>Latest audit entries</h2>
+  {% if audit %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+      <tbody>
+      {% for row in audit %}
+        <tr><td>{{ row.created_at|day }}</td><td><code>{{ row.actor[:12] }}</code></td>
+            <td>{{ row.action }}</td><td>{{ row.target }}</td><td>{{ row.detail }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="note">Nothing recorded.</p>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Earn — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="hero earn-hero">
+  <p class="eyebrow">Kituwa Cluster · Earn</p>
+  <h1>Your idle machine,<br>premium time on our sites.</h1>
+  <p class="lede">
+    Join the cluster with a worker node, create an account, and every CPU-second
+    of real Kituwa work becomes points. Redeem them for
+    <strong>Kituwa Premium</strong> — the member briefing, early access, and a
+    verified subscription token for our sites, starting with SearchAll, ReferStash
+    and Pixel.
+  </p>
+  <div class="hero-actions">
+    <a class="btn primary" href="/account/signup/">Create an account</a>
+    <a class="btn" href="/join/">Get a join code</a>
+    <a class="btn ghost" href="/earn/rules/">Read the rules</a>
+  </div>
+  <p class="note">The Earn page is for members with an account and at least one linked node.
+    Browsing the rewards is open; earning and redeeming are not. No physical goods are
+    sold, so there is no shipping and no address to hand over.</p>
+</section>
+
+<section class="band" aria-labelledby="numbers">
+  <h2 id="numbers">The programme so far</h2>
+  <dl class="facts four">
+    <div><dt>Members</dt><dd>{{ stats.members }}</dd></div>
+    <div><dt>Nodes linked</dt><dd>{{ stats.nodes }}</dd></div>
+    <div><dt>Points earned</dt><dd>{{ stats.earned|pts }}</dd></div>
+    <div><dt>Points redeemed</dt><dd>{{ stats.redeemed|pts }}</dd></div>
+  </dl>
+</section>
+
+<section class="band" aria-labelledby="how">
+  <h2 id="how">How earning works</h2>
+  <div class="grid three">
+    <article class="card">
+      <p class="card-label">1 · Join</p>
+      <h3>Bring a machine</h3>
+      <p>Use a join code to add a spare Linux box, Mac or Windows PC. The node earns
+         only while it is idle, so your own work always comes first.</p>
+    </article>
+    <article class="card">
+      <p class="card-label">2 · Link</p>
+      <h3>Claim your node</h3>
+      <p>Create an account, then run one command on the machine. The claim proves you
+         control it, and the node starts crediting your balance.</p>
+    </article>
+    <article class="card accent">
+      <p class="card-label">3 · Redeem</p>
+      <h3>Premium time</h3>
+      <p>Spend points on Kituwa Premium. The token unlocks the member area here and is
+         accepted by each site as it connects to the verifier.</p>
+    </article>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="rewards">
+  <h2 id="rewards">What points buy</h2>
+  <div class="grid three">
+    {% for reward in rewards %}
+    <article class="card reward-card">
+      <p class="card-label">Digital subscription</p>
+      <h3>{{ reward.title }}</h3>
+      <p>{{ reward.description }}</p>
+      <p class="price">{{ reward.cost_points|pts }} points</p>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="note">There are no physical rewards and no shipping. Points do not expire
+    while the programme runs, and they have no cash value.</p>
+</section>
+
+<section class="band narrow">
+  <h2>Already a member?</h2>
+  <p class="prose">Sign in to see your balance, claim a node and redeem.</p>
+  <div class="hero-actions">
+    <a class="btn primary" href="/account/login/?next=/earn/">Sign in</a>
+    <a class="btn" href="/account/signup/">Create an account</a>
+  </div>
+</section>
+{% endblock %}

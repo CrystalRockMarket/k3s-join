@@ -1,0 +1,5 @@
+Flask==3.0.3
+waitress==3.0.0
+webauthn==2.5.0
+argon2-cffi==23.1.0
+cryptography>=42.0

@@ -210,7 +210,8 @@ def connect(path: str | Path) -> sqlite3.Connection:
 
 def init(path: str | Path) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with connect(path) as conn:
+    conn = connect(path)
+    try:
         conn.executescript(SCHEMA)
         # created_at on nodes is TEXT; keep the schema explicit rather than
         # relying on SQLite's flexible typing for the one typo-proof column.
@@ -218,43 +219,18 @@ def init(path: str | Path) -> None:
         conn.execute(
             "INSERT OR IGNORE INTO settings(key, value) VALUES ('schema_version', '1')"
         )
+    finally:
+        conn.close()
 
 
 SEED_REWARDS = (
-    {
-        "slug": "sticker-pack",
-        "title": "Kituwa sticker pack",
-        "kind": "physical",
-        "cost_points": 5000,
-        "stock": 200,
-        "description": "Six vinyl stickers — cluster diagram, k3s mark and the Kituwa wordmark. Posted worldwide.",
-        "sort_order": 10,
-    },
-    {
-        "slug": "field-notebook",
-        "title": "K3s field notebook",
-        "kind": "physical",
-        "cost_points": 12000,
-        "stock": 100,
-        "description": "A5 dot-grid notebook with the join command on the inside cover. Posted worldwide.",
-        "sort_order": 20,
-    },
-    {
-        "slug": "cluster-mug",
-        "title": "Kituwa cluster mug",
-        "kind": "physical",
-        "cost_points": 20000,
-        "stock": 50,
-        "description": "330 ml stoneware mug, dishwasher safe. Posted worldwide.",
-        "sort_order": 30,
-    },
     {
         "slug": "premium-30",
         "title": "Kituwa Premium — 30 days",
         "kind": "digital",
         "cost_points": 15000,
         "stock": None,
-        "description": "One month of Kituwa Premium across participating sites, plus the member briefing on this cluster.",
+        "description": "One month of Kituwa Premium: the member briefing, early access to new tools, and a verified token for participating Kituwa sites.",
         "site": "premium",
         "plan": "premium",
         "term_days": 30,
@@ -286,9 +262,12 @@ SEED_REWARDS = (
     },
 )
 
-
 def seed(conn: sqlite3.Connection) -> None:
-    for item in SEED_REWARDS:
+    # The programme is digital-only. A physical row from an early draft is
+    # never sold and is hidden and deactivated on upgrade.
+    conn.execute("UPDATE rewards SET active=0 WHERE kind='physical'")
+    for raw in SEED_REWARDS:
+        item = {"site": "", "plan": "", "term_days": 0, "stock": None, **raw}
         conn.execute(
             "INSERT OR IGNORE INTO rewards"
             "(slug,title,kind,cost_points,stock,active,description,site,plan,term_days,sort_order)"

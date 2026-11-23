@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Receipt — {{ item.title }}{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Redemption {{ item.id[:10] }}</p>
+  <h1>{{ item.title }}</h1>
+  <p class="status-line"><span class="pill">{{ item.status }}</span>
+    {{ item.points|pts }} points · {{ item.created_at|day }}</p>
+
+  <div class="code-box">
+    <p class="card-label">Premium token</p>
+    <pre><code>{{ item.code }}</code></pre>
+    <p class="note">Keep this private. It is shown here and in your account; a
+      participating site checks it with a server-side POST to
+      <code>{{ public_origin }}/api/v1/earn/premium/verify</code>.
+      Active until {{ item.expires_at|day }}.</p>
+  </div>
+  {% if item.note %}<p class="note">{{ item.note }}</p>{% endif %}
+  <p class="prose"><a href="/earn/premium/">Open the member page</a> for what it unlocks,
+    the partner list and the integration notes.</p>
+  <p><a class="small-link" href="/earn/">Back to Earn</a> · <a class="small-link" href="/account/">Account</a></p>
+</section>
+{% endblock %}

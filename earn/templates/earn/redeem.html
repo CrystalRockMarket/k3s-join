@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Redeem {{ reward.title }} — Earn{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Redeem</p>
+  <h1>{{ reward.title }}</h1>
+  <p class="prose">{{ reward.description }}</p>
+  <dl class="facts">
+    <div><dt>Cost</dt><dd>{{ reward.cost_points|pts }} points</dd></div>
+    <div><dt>Your balance</dt><dd>{{ balance|pts }}</dd></div>
+    <div><dt>Delivery</dt><dd>Issued immediately</dd></div>
+  </dl>
+  {% if reward.stock is not none %}
+  <p class="note">{{ reward.stock }} remaining in this batch.</p>
+  {% endif %}
+
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+
+  <form method="post" action="/earn/redeem/{{ reward.slug }}/" class="stack form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <p class="prose">The time is added to <strong>{{ current_user.email }}</strong>
+      immediately. It stacks on top of any active Premium grant. You will get a
+      verification token and a link to the member page.</p>
+    <p class="note">Digital only. Nothing is shipped, no address is collected, and the
+      charge is final once the token is issued. A cancellation refunds the points and
+      revokes the token if the operator cancels it.</p>
+    <button class="btn primary" type="submit">Redeem for {{ reward.cost_points|pts }} points</button>
+    <a class="small-link" href="/earn/">Cancel</a>
+  </form>
+</section>
+{% endblock %}

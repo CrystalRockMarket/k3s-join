@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Check your email — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Almost there</p>
+  <h1>Check your email.</h1>
+  <p class="prose">{{ note }}</p>
+  <p class="note">The link works once and expires in 24 hours. If it does not arrive,
+    check the spam folder or ask <a href="mailto:support@kituwa.com">support@kituwa.com</a>.</p>
+  <p><a class="btn" href="/account/login/">Back to sign in</a></p>
+</section>
+{% endblock %}

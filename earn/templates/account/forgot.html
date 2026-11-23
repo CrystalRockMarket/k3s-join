@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Reset your password — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Account recovery</p>
+  <h1>Forgot your password?</h1>
+  <p class="prose">Enter the account's email. If it has an account, a single-use link
+    arrives within a minute and expires in 15 minutes.</p>
+  <form method="post" action="/account/forgot/" class="stack form">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label>Email
+      <input type="email" name="email" required maxlength="254" autocomplete="email">
+    </label>
+    <button class="btn primary" type="submit">Send the reset link</button>
+  </form>
+  <p class="note">Remembered it? <a href="/account/login/">Sign in</a>.</p>
+</section>
+{% endblock %}

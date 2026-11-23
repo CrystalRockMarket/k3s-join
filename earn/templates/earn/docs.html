@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Earn API — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Integration</p>
+  <h1>Earn API</h1>
+  <p class="prose">Read-only summary for the public; premium verification for partner
+    sites; a one-time claim endpoint for machines. No endpoint accepts a password or a
+    session cookie from another origin.</p>
+
+  <h2>Public summary</h2>
+  <pre><code>GET {{ origin }}/api/v1/earn/summary</code></pre>
+  <p class="note">Members, linked nodes, points earned and redeemed. Cache for five minutes.</p>
+
+  <h2>Verify premium</h2>
+  <pre><code>POST {{ origin }}/api/v1/earn/premium/verify
+Content-Type: application/json
+
+{"token":"kprem_…"}</code></pre>
+  <p class="prose">Answers <code>{"active":true,"site":"premium","plan":"premium",
+    "expires_at":"2026-12-23T00:00:00Z"}</code> or <code>{"active":false}</code>.
+    Call it server-side. Never put a token in a page, a referrer URL or a log line.</p>
+
+  <h2>Claim a node</h2>
+  <pre><code>POST {{ origin }}/api/v1/earn/claim
+Content-Type: application/json
+
+{"code":"k3sclaim_…","node":"spare-pc"}</code></pre>
+  <p class="prose">The code is issued in the member's account, expires after 30 minutes and
+    works once. The node must already appear in the published points snapshot. This is
+    the endpoint used by <a href="/claim.sh">claim.sh</a>; it is not for browsers.</p>
+
+  <h2>Auth methods</h2>
+  <pre><code>GET {{ origin }}/.well-known/auth-methods.json</code></pre>
+
+  <h2>Operating notes</h2>
+  <ul class="checks">
+    <li>The worker computes points, publishes a snapshot to the host every five minutes;
+      the host records deltas and holds accounts, sessions and redemptions.</li>
+    <li>All write endpoints are same-origin and CSRF-protected except the one-time claim
+      code, which is its own bearer credential.</li>
+    <li>Sessions are server-side, host-only, Secure and HttpOnly. Passwords are Argon2id.
+      Email verification and password reset are single-use links.</li>
+    <li>No third-party JavaScript runs on account or redemption pages.</li>
+  </ul>
+</section>
+{% endblock %}

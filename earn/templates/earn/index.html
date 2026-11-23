@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Earn — your balance{% endblock %}
+{% block body %}
+<section class="band earn-head">
+  {% if verified %}<p class="flash">Email confirmed. Welcome to the programme.</p>{% endif %}
+  <div class="balance-row">
+    <div>
+      <p class="eyebrow">Your balance</p>
+      <p class="balance">{{ balance|pts }} <span>points</span></p>
+      <p class="note">{{ earned|pts }} earned in total · {{ nodes|length }} node{{ "" if nodes|length == 1 else "s" }} linked</p>
+    </div>
+    <div class="balance-actions">
+      <a class="btn primary" href="/earn/claim/">Link a node</a>
+      <a class="btn" href="/earn/premium/">Premium</a>
+    </div>
+  </div>
+</section>
+
+{% if not nodes %}
+<section class="band callout-band">
+  <h2>No node linked yet</h2>
+  <p class="prose">Your account is ready, but it does not earn until a machine is linked.
+    Open <a href="/earn/claim/">Link a node</a>, run the one-line command on the machine,
+    and this page starts filling up.</p>
+</section>
+{% endif %}
+
+<section class="band" aria-labelledby="nodes-h">
+  <div class="section-head">
+    <h2 id="nodes-h">Your machines</h2>
+    <a class="small-link" href="/earn/claim/">Link another</a>
+  </div>
+  {% if nodes %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Node</th><th>Cluster total</th><th>Linked</th><th></th></tr></thead>
+      <tbody>
+      {% for node in nodes %}
+        <tr>
+          <td><code>{{ node.node }}</code></td>
+          <td>{{ node.live_total|pts }}</td>
+          <td>{{ node.linked_at|day }}</td>
+          <td>
+            <form method="post" action="/earn/nodes/{{ node.node }}/unlink/" class="inline-form">
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <button class="linklike danger" type="submit">Unlink</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Points are credited from the worker's published ledger every five minutes.
+    Unlinking stops future credit; points already earned stay in your balance.</p>
+  {% else %}
+  <p class="prose">Nothing here yet. A linked node appears within a minute of the claim.</p>
+  {% endif %}
+</section>
+
+<section class="band" aria-labelledby="rewards-h">
+  <h2 id="rewards-h">Redeem for Premium</h2>
+  <div class="grid three">
+    {% for reward in rewards %}
+    <article class="card reward-card">
+      <p class="card-label">Digital subscription</p>
+      <h3>{{ reward.title }}</h3>
+      <p>{{ reward.description }}</p>
+      <p class="price">{{ reward.cost_points|pts }} points
+        {% if reward.stock is not none %}<span class="stock">{{ reward.stock }} remaining</span>{% endif %}
+      </p>
+      {% if balance >= reward.cost_points and (reward.stock is none or reward.stock > 0) %}
+        <a class="btn primary small" href="/earn/redeem/{{ reward.slug }}/">Redeem</a>
+      {% else %}
+        <span class="btn small disabled" aria-disabled="true">
+          {% if reward.stock is not none and reward.stock <= 0 %}Out of stock{% else %}Need {{ (reward.cost_points - balance)|pts }} more{% endif %}
+        </span>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="band split" aria-labelledby="board-h">
+  <div>
+    <h2 id="board-h">Leaderboard</h2>
+    <p class="note">Display names only. Members can opt out in their account.</p>
+    <div class="two-tables">
+      <div>
+        <h3 class="table-title">This month</h3>
+        <ol class="board">
+          {% for row in month %}
+          <li{% if row.id == current_user.id %} class="me"{% endif %}>
+            <span class="who">{{ row.display_name }}</span>
+            <span class="score">{{ row.earned|pts }}</span>
+          </li>
+          {% else %}
+          <li class="empty">No earnings recorded this month yet.</li>
+          {% endfor %}
+        </ol>
+      </div>
+      <div>
+        <h3 class="table-title">All time</h3>
+        <ol class="board">
+          {% for row in all_time %}
+          <li{% if row.id == current_user.id %} class="me"{% endif %}>
+            <span class="who">{{ row.display_name }}</span>
+            <span class="score">{{ row.earned|pts }}</span>
+          </li>
+          {% else %}
+          <li class="empty">The board is empty.</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
+  <aside class="card">
+    <h3>Premium</h3>
+    {% if premium %}
+      {% for grant in premium %}
+      <p><span class="pill">Active</span> {{ grant.plan|capitalize }} until {{ grant.until|day }}</p>
+      {% endfor %}
+      <a class="small-link" href="/earn/premium/">Member page</a>
+    {% else %}
+      <p>No premium time yet. A 30-day redemption is {{ 15000|pts }} points.</p>
+      <a class="small-link" href="/earn/redeem/premium-30/">See Premium</a>
+    {% endif %}
+  </aside>
+</section>
+
+<section class="band" aria-labelledby="ledger-h">
+  <h2 id="ledger-h">Recent activity</h2>
+  {% if recent %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>What</th><th class="num">Points</th></tr></thead>
+      <tbody>
+      {% for row in recent %}
+        <tr>
+          <td>{{ row.created_at|day }}</td>
+          <td>{{ row.memo }}{% if row.node %} <code>{{ row.node }}</code>{% endif %}</td>
+          <td class="num {{ 'plus' if row.points > 0 else 'minus' }}">{{ "%+d"|format(row.points|round|int) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="prose">No ledger entries yet. Once a linked node reports work, the first
+    credit appears here.</p>
+  {% endif %}
+</section>
+{% endblock %}

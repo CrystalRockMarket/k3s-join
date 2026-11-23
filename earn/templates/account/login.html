@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Sign in — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow form-band">
+  <p class="eyebrow">Welcome back</p>
+  <h1>Sign in.</h1>
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+  {% if request.args.get('reset') %}<p class="flash">Password changed. Sign in with the new one.</p>{% endif %}
+  {% if request.args.get('changed') %}<p class="flash">Password changed. Sign in again.</p>{% endif %}
+
+  <div class="signin-methods">
+    <button class="btn primary wide" id="passkey-login" type="button" data-next="{{ next }}">
+      Use a passkey
+    </button>
+    <p class="method-note">First choice: nothing to type, phishing-resistant.</p>
+
+    <div class="divider"><span>or use a password</span></div>
+
+    <form method="post" action="/account/login/" class="stack form">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>Email
+        <input type="email" name="email" required maxlength="254" autocomplete="email" value="{{ email or '' }}">
+      </label>
+      <label>Password
+        <input type="password" name="password" required maxlength="128" autocomplete="current-password">
+      </label>
+      <button class="btn" type="submit">Sign in with a password</button>
+    </form>
+  </div>
+
+  <p class="note"><a href="/account/forgot/">Forgot the password?</a> ·
+    New here? <a href="/account/signup/?next={{ next }}">Create an account</a>.</p>
+  <p class="note" id="passkey-status" role="status"></p>
+</section>
+{% endblock %}

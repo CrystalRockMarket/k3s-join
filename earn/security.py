@@ -121,7 +121,10 @@ def hash_password(password: str) -> str:
 def check_password(stored: str | None, password: str) -> bool:
     if not stored:
         # Unknown accounts take a comparable verification path.
-        HASHER.verify(_DUMMY_HASH, password)
+        try:
+            HASHER.verify(_DUMMY_HASH, password)
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
+            pass
         return False
     try:
         return HASHER.verify(stored, password)
@@ -250,7 +253,8 @@ def load_session():
     conn = db.connect(cfg.db_path)
     try:
         row = conn.execute(
-            "SELECT s.*, u.email, u.email_verified_at, u.display_name, u.status,"
+            "SELECT s.csrf, s.kind, s.created_at AS session_created, s.expires_at,"
+            " s.last_seen, u.id, u.email, u.email_verified_at, u.display_name, u.status,"
             " u.is_operator, u.node_limit, u.leaderboard, u.webauthn_handle"
             " FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.id=?",
             (sid,),

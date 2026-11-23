@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Link a node — Earn{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Claim a machine</p>
+  <h1>Run one command on the node.</h1>
+  <p class="prose">The command proves you control the machine, not just the account.
+    It checks that k3s is active, reads the node name from the cluster config and
+    reports it with this one-time code. Codes expire in 30 minutes and work once.</p>
+
+  <div class="code-box">
+    <p class="card-label">Your claim code</p>
+    <pre><code>{{ code }}</code></pre>
+    <p class="note">Expires {{ expires }} UTC. Reload this page for a fresh code.</p>
+  </div>
+
+  <p class="card-label">On the machine, as root</p>
+  <pre><code>curl -fsSL https://k3s.kituwa.com/claim.sh | sudo bash -s -- --code '{{ code }}'</code></pre>
+
+  <div class="callout">
+    <p><strong>What it sends:</strong> the node name and the code. Nothing else.
+      The command is readable before you run it:
+      <code>curl -fsSL https://k3s.kituwa.com/claim.sh | less</code>.</p>
+  </div>
+
+  <p class="note">After it reports “Linked”, reload this page. If the node does not
+    appear in the cluster list yet, wait five minutes for the points publication
+    and try a fresh code. Node limit on this account: {{ limit }}.</p>
+</section>
+
+<section class="band" aria-labelledby="linked-h">
+  <h2 id="linked-h">Linked to this account</h2>
+  {% if nodes %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Node</th><th>Earning since</th><th>Last reported total</th></tr></thead>
+      <tbody>
+      {% for node in nodes %}
+        <tr><td><code>{{ node.node }}</code></td><td>{{ node.linked_at|day }}</td>
+            <td>{{ node.live_total|pts }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="prose">None yet.</p>
+  {% endif %}
+</section>
+
+<section class="band" aria-labelledby="waiting-h">
+  <h2 id="waiting-h">Nodes waiting for a claim</h2>
+  {% if claimable %}
+  <p class="note">These names are in the published ledger but not linked to any account.
+    Use the command above on the machine you own.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Node</th><th>Lifetime points</th><th>Last report</th></tr></thead>
+      <tbody>
+      {% for node in claimable %}
+        <tr><td><code>{{ node.node }}</code></td><td>{{ node.points|pts }}</td>
+            <td>{{ node.updated_at|day }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Seeing a machine you do not own here? It stays unclaimed; only its
+    operator can run the command on it.</p>
+  {% else %}
+  <p class="prose">Every node in the current snapshot is linked. New nodes appear here
+    after their first points publication.</p>
+  {% endif %}
+</section>
+{% endblock %}
