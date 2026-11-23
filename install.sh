@@ -437,82 +437,53 @@ wait_for_agent() {
     return 0
   fi
 
-  say "  systemd is starting k3s-agent.service. On a first run it can take one to"
-  say "  three minutes: the agent registers with the cluster, gets its certificates,"
-  say "  and starts the container runtime. This window stays quiet on purpose — it"
-  say "  is not stuck."
-  local waited=0 line last="" RENEWED=0
+  say "  systemd is starting k3s-agent.service. First run: one to three minutes."
+  spinner_start "waiting for k3s-agent.service"
+
+  local waited=0
   while [ "$waited" -lt 240 ]; do
     if systemctl is-active --quiet k3s-agent && ! systemctl is-failed --quiet k3s-agent 2>/dev/null; then
-      printf '\r  %s\n' "$(printf '%*s' 48 '')"
+      spinner_stop 0
       ok "k3s-agent is running"
       break
     fi
-    if [ -t 1 ]; then
-      printf '\r  %s waiting for the service… %ss' "$(printf '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' | cut -c$(( (waited % 10) + 1 )))" "$waited"
-    else
-      printf '  … waiting for the service… %ss\n' "$waited"
-    fi
-    # Every 15 s, show the most recent line the agent logged, so the terminal is
-    # never silent for long.
+    # A dead token fails fast; do not sit here pretending.
     if [ $((waited % 15)) -eq 0 ] && [ "$waited" -gt 0 ]; then
-      # A dead token fails fast; do not sit here for four minutes pretending.
       if [ "$(journalctl -u k3s-agent --since '-2 min' --no-pager 2>/dev/null | grep -ciE 'invalid bearer token|not authorized')" -ge 2 ]; then
-        printf '\r  %s\n' "$(printf '%*s' 40 '')"
         if [ "$RENEWED" = "0" ]; then
           RENEWED=1
+          spinner_stop 1
           step "the cluster rejected the code — renewing it automatically"
           if renew_join_code; then
-            ok "new token written; restarting the agent (no need to sign up again)"
+            ok "new token written; restarting the agent"
             systemctl start --no-block k3s-agent 2>/dev/null || true
-            wait_for_agent_again=1
+            spinner_start "waiting for k3s-agent.service"
+            waited=0
             continue
           fi
           warn "the code could not be renewed automatically"
+        else
+          spinner_stop 1
         fi
         say ""
         die "the cluster rejected this machine's token (401 Not authorized).
 
-The join code is no longer valid: it was revoked, expired, or the machine is
-still holding an old one. Get a fresh code at https://k3s.kituwa.com/join/ and
-run the same command again — it now clears the stale credentials and restarts."
-      fi
-      line="$(journalctl -u k3s-agent -n 40 --no-pager -o cat 2>/dev/null | tail -1 | cut -c1-100)"
-      if [ -n "$line" ] && [ "$line" != "$last" ]; then
-        printf '\r  %s\n  %s\n' "$(printf '%*s' 40 '')" "$line"
-        last="$line"
+This is not the code expiring — k3s refused the token itself. Open
+https://k3s.kituwa.com/join/ once for a new one, or send me the output of:
+  sudo journalctl -u k3s-agent -n 40 --no-pager"
       fi
     fi
-    sleep 5
-    waited=$((waited + 5))
+    sleep 1
+    waited=$((waited + 1))
   done
 
-  local logs
-  logs="$(journalctl -u k3s-agent -n 120 --no-pager 2>/dev/null || true)"
-
   if ! systemctl is-active --quiet k3s-agent; then
-    printf '\n' >&2
-    printf '%s\n' "$logs" | tail -25 >&2
+    spinner_stop 1
+    journalctl -u k3s-agent -n 25 --no-pager >&2 || true
     die "k3s-agent is not running. The last 25 log lines are above."
   fi
-
-  if printf '%s' "$logs" | grep -qiE 'invalid bearer token|not authorized|unauthorized'; then
-    say ""
-    die "the cluster rejected this machine's token (401 Not authorized).
-
-The join code was revoked, expired, or already used by another machine.
-Get a fresh code at https://k3s.kituwa.com/join/ and run this again —
-the k3s binary is already installed, so the second run only replaces the
-token and restarts the service."
-  fi
-  if printf '%s' "$logs" | grep -qiE 'node password failed|node password rejected'; then
-    say ""
-    die "the cluster has a different node password for the name '${NODE_NAME}'.
-Rename this machine (--node-name) or delete the old node record:
-  ssh kituwa-cloud-1 'sudo -n k3s kubectl delete node ${NODE_NAME}'"
-  fi
-
-  ok "the agent is up and the service is enabled for every boot"
+  say ""
+  ok "the agent is up and enabled for every boot"
 }
 
 # ------------------------------------------------------------ uninstall -----
