@@ -32,22 +32,21 @@
   </section>
 
   <section class="band flush">
-    <h2>Checks</h2>
+    <h2>What to check</h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Check</th><th>How often</th><th>What a failure looks like</th></tr></thead>
+        <thead><tr><th>Check</th><th>What a failure looks like</th><th>How to check it</th></tr></thead>
         <tbody>
-          <tr><td>This page</td><td>Every 60 s</td><td>HTTP 5xx or a timeout at the edge</td></tr>
-          <tr><td>Control plane API</td><td>Every 60 s</td><td>Nodes go <code>NotReady</code>, workloads stop scheduling</td></tr>
-          <tr><td>Worker heartbeat</td><td>Every 60 s</td><td>A node stays <code>NotReady</code> past its grace period</td></tr>
-          <tr><td>Installer download</td><td>Every 15 min</td><td><code>/install.sh</code> returns anything but a shell script</td></tr>
-          <tr><td>TLS certificate</td><td>Daily</td><td>Expiry inside 14 days</td></tr>
+          <tr><td>This page</td><td>HTTP 5xx or a timeout at the edge</td><td><code>curl -sI https://k3s.kituwa.com/</code></td></tr>
+          <tr><td>Installer download</td><td><code>/install.sh</code> returns anything but a shell script</td><td><code>curl -fsSL https://k3s.kituwa.com/install.sh | head -3</code></td></tr>
+          <tr><td>Control plane API</td><td>Nodes go <code>NotReady</code>, workloads stop scheduling</td><td><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes -o wide'</code></td></tr>
+          <tr><td>Worker heartbeat</td><td>A node stays <code>NotReady</code> past its grace period</td><td><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes'</code></td></tr>
+          <tr><td>TLS certificate</td><td>Expiry inside 14 days</td><td><code>curl -sI https://k3s.kituwa.com/ | head -1</code> and the host's certbot</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Live node state, run history and the weekly grid are on the
-      project's page in the Hub:
-      <a href="https://hub.kituwa.com/projects">metrics.kituwa.com/projects</a>.</p>
+    <p class="note">Scheduled monitoring, run history and the weekly grid live in the
+      Hub project feed: <a href="https://hub.kituwa.com/projects">hub.kituwa.com/projects</a>.</p>
   </section>
 
   <section class="band">
