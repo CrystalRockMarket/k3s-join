@@ -114,11 +114,6 @@
     event.preventDefault();
     clearErrors();
     if (!form.reportValidity()) { return; }
-    // A person cannot fill this in under two seconds.
-    if (Date.now() - started < 2000) {
-      say("That was very fast — give it a second and press send again.", "bad");
-      return;
-    }
     if (!form.dataset.reference) {
       form.dataset.reference = reference();
     }
