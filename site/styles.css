@@ -541,3 +541,7 @@ tbody td:first-child { color: var(--ink); }
 @keyframes joinflash { from { background: rgba(184,242,74,.22); } to { background: transparent; } }
 
 .stat-sub { font-family: var(--mono); font-size: .64rem; color: var(--soft); letter-spacing: .04em; }
+
+.hero-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.hero-row .stat-row { flex: 1 1 32rem; margin-top: 1.4rem; }
+.hero-row .join-cta { margin-top: 1.4rem; white-space: nowrap; }
