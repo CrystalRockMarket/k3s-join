@@ -46,19 +46,23 @@
 
   <section class="band" aria-labelledby="chart-h">
     <div class="chart-head">
-      <h2 id="chart-h">Points over time</h2>
+      <h2 id="chart-h">Work over the last three months</h2>
       <div class="tabs small" role="tablist" aria-label="Range">
-        <button role="tab" id="tab-24" aria-selected="true" aria-controls="chart">24 hours</button>
+        <button role="tab" id="tab-90" aria-selected="true" aria-controls="chart">90 days</button>
         <button role="tab" id="tab-7d" aria-selected="false" aria-controls="chart">7 days</button>
+        <button role="tab" id="tab-24" aria-selected="false" aria-controls="chart">24 hours</button>
       </div>
     </div>
     <figure class="chart-fig">
       <div id="chart" class="chart" data-state="loading"></div>
       <figcaption class="note" id="asof">Loading the published snapshot…</figcaption>
     </figure>
-    <p class="note">The backlog at the left is a single, auditable step: 34,000+
-      points from work the estate can prove it did — runs, renders, scans and commits
-      counted in project databases. Everything after that is measured live.</p>
+    <p class="note"><strong>Bright bars are measured.</strong> Faded bars are the
+      three months before the meter existed, extrapolated from recent measured use:
+      the same daily rhythm, with whole stretches where the worker is idle. They are
+      shown for shape and are <strong>never added to the score</strong>. The total
+      above is only work we can point at: 34,000+ backlog points from counted runs,
+      renders, scans and commits, plus every second measured since.</p>
   </section>
 
   <section class="band" aria-labelledby="now">
@@ -108,6 +112,17 @@
         <p><a class="btn primary" href="/join/">Ask for a join code</a></p>
       </article>
       <article class="card">
+        <h3>Points are proportional</h3>
+        <p>One point is one CPU-second, credited to the machine that spent it. Give
+           <strong>10% of the work and you earn 10% of the points</strong>; give ten
+           times the work and you earn ten times the points. No bonus is based on
+           who you are, when you joined, or how many machines you run — only on
+           measured work, and a volunteer's idle-only rule changes <em>when</em> it
+           counts, never <em>how much</em>.</p>
+        <p class="note">New machines start at zero and earn from their first sample.
+          There is no backdating to the backlog.</p>
+      </article>
+      <article class="card">
         <h3>What counts</h3>
         <dl class="points-table">
           <div><dt>1 point</dt><dd>1 CPU-second of Kituwa work</dd></div>
@@ -136,6 +151,6 @@
   </nav>
 </footer>
 
-<script src="/points/points.js?v=2" defer></script>
+<script src="/points/points.js?v=5" defer></script>
 </body>
 </html>
