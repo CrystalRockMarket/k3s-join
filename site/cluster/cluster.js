@@ -43,4 +43,33 @@
       document.getElementById("rows").innerHTML =
         '<tr><td colspan="6" class="note">The worker is offline — this page shows the last published snapshot.</td></tr>';
     });
+
+  // Live tail: poll a tiny snapshot every 5 s and redraw as soon as a worker
+  // appears or its points move. The static page keeps working if this stops.
+  var seen = {};
+  function poll() {
+    fetch("/points/live.json", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) { return; }
+        document.getElementById("s-nodes").textContent = d.active_nodes + " / " + d.nodes.length;
+        document.getElementById("s-total").textContent = fmt(d.total_points);
+        document.getElementById("s-24h").textContent = fmt(d.points_10m);
+        document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
+          var fresh = !seen[n.node];
+          seen[n.node] = true;
+          var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
+          return '<tr class="' + (fresh ? "row-new" : "") + '">' +
+            '<td class="worker-cell"><img class="px" src="/cluster/' + art + '" width="16" height="16" alt="">' +
+            "<strong>" + n.node + "</strong>" +
+            '<span class="worker-points">' + fmt(n.points) + " points</span></td>" +
+            "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
+            "<td>" + (fresh ? '<span class="pill">just joined</span>' : "online") + "</td>" +
+            "<td><strong>" + fmt(n.points) + "</strong></td><td>—</td>" +
+            "<td>" + ago(n.last_seen) + "</td></tr>";
+        }).join("");
+      }).catch(function () {});
+  }
+  poll();
+  setInterval(poll, 5000);
 })();

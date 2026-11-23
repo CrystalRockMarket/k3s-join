@@ -536,3 +536,6 @@ tbody td:first-child { color: var(--ink); }
 .node-alt { margin: .6rem 0 0; font-size: .78rem; color: var(--soft); line-height: 1.6; }
 .node-alt span { font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; font-size: .66rem; color: var(--muted); }
 .node-alt code { display: inline-block; margin-top: .2rem; font-size: .72rem; word-break: break-all; }
+
+.row-new { animation: joinflash 2s ease-out 1; }
+@keyframes joinflash { from { background: rgba(184,242,74,.22); } to { background: transparent; } }

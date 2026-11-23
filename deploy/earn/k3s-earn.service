@@ -1,0 +1,30 @@
+[Unit]
+Description=Kituwa Cluster Earn — accounts, node links and premium
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=k3s-earn
+Group=k3s-earn
+WorkingDirectory=/opt/k3s-earn
+EnvironmentFile=/etc/k3s-earn/earn.env
+ExecStart=/opt/k3s-earn/.venv/bin/python -m earn
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/k3s-earn
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

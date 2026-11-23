@@ -1,0 +1,19 @@
+[Unit]
+Description=Ingest the published cluster points snapshot into Earn
+After=network-online.target k3s-earn.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=k3s-earn
+Group=k3s-earn
+WorkingDirectory=/opt/k3s-earn
+EnvironmentFile=/etc/k3s-earn/earn.env
+ExecStart=/opt/k3s-earn/.venv/bin/python -m earn.ingest
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/k3s-earn
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0027

@@ -41,6 +41,7 @@
         <thead><tr><th>Check</th><th>What a failure looks like</th><th>How to check it</th></tr></thead>
         <tbody>
           <tr><td>This page</td><td>HTTP 5xx or a timeout at the edge</td><td><code>curl -sI https://k3s.kituwa.com/</code></td></tr>
+          <tr><td>Earn service</td><td><code>/earn/</code> returns 5xx, or account and premium pages fail</td><td><code>curl -fsS https://k3s.kituwa.com/earn/ | head -3</code></td></tr>
           <tr><td>Installer download</td><td><code>/install.sh</code> returns anything but a shell script</td><td><code>curl -fsSL https://k3s.kituwa.com/install.sh | head -3</code></td></tr>
           <tr><td>Control plane API</td><td>Nodes go <code>NotReady</code>, workloads stop scheduling</td><td><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes -o wide'</code></td></tr>
           <tr><td>Worker heartbeat</td><td>A node stays <code>NotReady</code> past its grace period</td><td><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes'</code></td></tr>
