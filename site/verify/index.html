@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify your worker — k3s.kituwa.com</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<header class="top"><a class="brand" href="/"><span class="brand-mark"></span><span>k3s<span class="dim">.kituwa.com</span></span></a>
+<nav class="top-nav"><a href="/cluster/">Cluster</a><a href="/join/">Join</a></nav></header>
+<main>
+  <section class="hero compact"><p class="eyebrow">Verify</p><h1>This worker</h1>
+    <p class="lede">Opening this link on the machine itself proves the machine is yours.</p></section>
+  <section class="band flush"><div class="quick-join" id="box"><p class="note">Checking the link…</p></div></section>
+</main>
+<footer class="foot"><div><p><strong>Kituwa</strong> — small tools, run honestly.</p></div></footer>
+<script>
+(function () {
+  var box = document.getElementById("box");
+  var t = new URLSearchParams(location.search).get("t");
+  if (!t) { box.innerHTML = '<p class="form-status bad">No link token. Run the installer again to get one.</p>'; return; }
+  fetch("/api/v1/account/verify?t=" + encodeURIComponent(t), { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.ok) { throw new Error(d.error || "could not verify"); }
+      box.innerHTML = '<p class="quick-title">Verified worker <strong>' + d.node + "</strong></p>" +
+        '<p class="note">Points for this machine are now attached to ' + d.email + ".</p>" +
+        '<p class="score-number">' + (d.points == null ? "—" : Math.round(d.points).toLocaleString("en-US")) + "</p>" +
+        '<p class="stat-l">points earned by this worker</p>' +
+        '<p class="note"><a href="/cluster/">See it live on the cluster page</a></p>';
+    })
+    .catch(function (e) {
+      box.innerHTML = '<p class="form-status bad">' + (e.message || "could not verify") + "</p>";
+    });
+})();
+</script>
+</body></html>

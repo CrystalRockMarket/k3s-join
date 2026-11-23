@@ -504,8 +504,6 @@ install_k3s() {
     return 0
   fi
   step "installing k3s $K3S_VERSION (official installer, sha256-verified)"
-  say "  This downloads about 70 MB, checks it against the published sha256, then"
-  say "  creates the systemd service that runs the agent on every boot."
   local tmp
   tmp="$(mktemp -d)"
   if [ "$DRY_RUN" = "1" ]; then
@@ -532,7 +530,6 @@ install_k3s() {
   rel_url="https://github.com/k3s-io/k3s/releases/download/$(printf '%s' "$K3S_VERSION" | sed 's/+/%2B/')/k3s${arch_suffix}"
   sum_url="https://github.com/k3s-io/k3s/releases/download/$(printf '%s' "$K3S_VERSION" | sed 's/+/%2B/')/sha256sum-$( [ "$arch_suffix" = "-arm64" ] && echo arm64 || { [ "$arch_suffix" = "-armhf" ] && echo arm || echo amd64; } ).txt"
 
-  say "  downloading k3s $K3S_VERSION — the byte count updates as it goes"
   if curl -fL --progress-bar --retry 3 --retry-delay 2 -o "$tmp/k3s.bin" "$rel_url"; then
     if curl -fsSL -o "$tmp/sums" "$sum_url" 2>/dev/null; then
       want="$(awk '/ k3s$/ {print $1}' "$tmp/sums" | head -1)"
@@ -585,7 +582,6 @@ wait_for_agent() {
     return 0
   fi
 
-  say "  systemd is starting k3s-agent.service. First run: one to three minutes."
   spinner_start "waiting for k3s-agent.service"
 
   local waited=0
@@ -593,14 +589,6 @@ wait_for_agent() {
     if systemctl is-active --quiet k3s-agent && ! systemctl is-failed --quiet k3s-agent 2>/dev/null \
        && [ -f /var/lib/rancher/k3s/agent/client-ca.crt ]; then
       spinner_stop 0
-      say ""
-      fg256 51 '  ██╗  ██╗██╗████████╗██╗   ██╗██╗    ██╗ █████╗ '; printf '\n'
-      fg256 45 '  ██║ ██╔╝██║╚══██╔══╝██║   ██║██║    ██║██╔══██╗'; printf '\n'
-      fg256 39 '  █████╔╝ ██║   ██║   ██║   ██║██║ █╗ ██║███████║'; printf '\n'
-      fg256 33 '  ██╔═██╗ ██║   ██║   ██║   ██║██║███╗██║██╔══██║'; printf '\n'
-      fg256 27 '  ██║  ██╗██║   ██║   ╚██████╔╝╚███╔███╔╝██║  ██║'; printf '\n'
-      fg256 21 '  ╚═╝  ╚═╝╚═╝   ╚═╝    ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═╝'; printf '\n'
-      say ""
       ok "k3s-agent is running"
       break
     fi
@@ -691,18 +679,8 @@ summary() {
   say "   server    ${SERVER%/}"
   say "   version   $K3S_VERSION"
   say ""
-  say " ${C_OK}${C_HEAD}You are connected. You can close this window now.${C_RESET}"
-  say ""
-  say " It is installed as a systemd service. That means:"
-  say "   • it starts automatically every time this machine boots"
-  say "   • it keeps running after you close this terminal window"
-  say "   • you do not need to leave anything open"
-  say "   • turning the machine off stops it cleanly; turning it on starts it again"
-  say "   • nothing needs to stay open, and no command needs to be running"
-  say ""
-  say " Check it any time:"
-  say "   systemctl status k3s-agent"
-  say "   sudo journalctl -u k3s-agent -f"
+  say " ${C_OK}${C_HEAD}Connected.${C_RESET} It runs as a service: it starts on boot and keeps"
+  say " running after you close this window. Turning the PC off is fine."
   say ""
   say ""
   say " Leave whenever you want, no questions asked:"
