@@ -466,6 +466,7 @@ install_k3s() {
   tmp="$(mktemp -d)"
   if [ "$DRY_RUN" = "1" ]; then
     # Show the real animation so a demo looks like the real thing.
+    say "  (dry run) would download k3s $K3S_VERSION with a live byte counter"
     spinner_start "downloading and verifying k3s $K3S_VERSION (dry run)"
     sleep 2
     spinner_stop 0
@@ -474,6 +475,51 @@ install_k3s() {
     return 0
   fi
   curl -fsSL "$K3S_INSTALL_URL" -o "$tmp/install.sh" || die "could not download the k3s installer"
+
+  # Download the binary ourselves so the person sees real byte progress instead
+  # of a silent spinner for 70 MB. The official installer then skips its own
+  # download and uses the verified file. If anything here fails we fall back to
+  # the normal path, so this can only add feedback, never remove the install.
+  local arch_suffix="" rel_url sum_url sum_file got want
+  case "$(uname -m)" in
+    aarch64|arm64) arch_suffix="-arm64" ;;
+    armv7l)        arch_suffix="-armhf" ;;
+  esac
+  rel_url="https://github.com/k3s-io/k3s/releases/download/$(printf '%s' "$K3S_VERSION" | sed 's/+/%2B/')/k3s${arch_suffix}"
+  sum_url="https://github.com/k3s-io/k3s/releases/download/$(printf '%s' "$K3S_VERSION" | sed 's/+/%2B/')/sha256sum-$( [ "$arch_suffix" = "-arm64" ] && echo arm64 || { [ "$arch_suffix" = "-armhf" ] && echo arm || echo amd64; } ).txt"
+
+  say "  downloading k3s $K3S_VERSION — the byte count updates as it goes"
+  if curl -fL --progress-bar --retry 3 --retry-delay 2 -o "$tmp/k3s.bin" "$rel_url"; then
+    if curl -fsSL -o "$tmp/sums" "$sum_url" 2>/dev/null; then
+      want="$(awk '/ k3s$/ {print $1}' "$tmp/sums" | head -1)"
+      got="$(sha256sum "$tmp/k3s.bin" | awk '{print $1}')"
+      if [ -n "$want" ] && [ "$want" != "$got" ]; then
+        warn "checksum mismatch on the downloaded binary; letting the official installer fetch it"
+        rm -f "$tmp/k3s.bin"
+      else
+        install -m 0755 "$tmp/k3s.bin" /usr/local/bin/k3s
+        ok "downloaded and verified ($(du -h "$tmp/k3s.bin" | cut -f1))"
+        spinner_start "installing the systemd service"
+        rc=0
+        INSTALL_K3S_SKIP_DOWNLOAD=true \
+        INSTALL_K3S_BIN_DIR=/usr/local/bin \
+        INSTALL_K3S_VERSION="$K3S_VERSION" \
+        INSTALL_K3S_EXEC="agent" \
+        INSTALL_K3S_SYMLINK="skip" \
+          sh "$tmp/install.sh" || rc=$?
+        spinner_stop "$rc"
+        rm -rf "$tmp"
+        [ "$rc" = "0" ] || die "the k3s installer failed; see the output above"
+        ok "k3s agent installed as a systemd service"
+        return 0
+      fi
+    else
+      say "  (no checksum file available; using the official installer's own verification)"
+    fi
+  else
+    warn "direct download failed; using the official installer instead"
+  fi
+
   spinner_start "downloading and verifying k3s $K3S_VERSION (about 70 MB)"
   rc=0
   INSTALL_K3S_VERSION="$K3S_VERSION" \
