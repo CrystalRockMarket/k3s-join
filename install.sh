@@ -537,7 +537,10 @@ https://k3s.kituwa.com/join/ once for a new one, or send me the output of:
   if ! systemctl is-active --quiet k3s-agent; then
     spinner_stop 1
     journalctl -u k3s-agent -n 25 --no-pager >&2 || true
-    die "k3s-agent is not running. The last 25 log lines are above."
+    die "k3s-agent is not running. The last 25 log lines are above.
+
+Send me the state in one command — it uploads itself, nothing to copy:
+  curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --diagnose"
   fi
   say ""
   ok "the agent is up and enabled for every boot"
@@ -584,11 +587,14 @@ summary() {
   say "   server    ${SERVER%/}"
   say "   version   $K3S_VERSION"
   say ""
+  say " ${C_OK}${C_HEAD}You are connected. You can close this window now.${C_RESET}"
+  say ""
   say " It is installed as a systemd service. That means:"
   say "   • it starts automatically every time this machine boots"
   say "   • it keeps running after you close this terminal window"
   say "   • you do not need to leave anything open"
   say "   • turning the machine off stops it cleanly; turning it on starts it again"
+  say "   • nothing needs to stay open, and no command needs to be running"
   say ""
   say " Check it any time:"
   say "   systemctl status k3s-agent"
