@@ -51,6 +51,69 @@ if [ -t 1 ]; then
 else
   C_RESET=""; C_DIM=""; C_OK=""; C_WARN=""; C_ERR=""; C_HEAD=""
 fi
+# 256-colour helper for the logo gradient (cyan -> blue), only when the terminal
+# can take it. Piped output stays plain text.
+fg256() {
+  if [ -t 1 ]; then printf '\033[38;5;%sm%s\033[0m' "$1" "$2"; else printf '%s' "$2"; fi
+}
+
+banner() {
+  local host arch
+  host="$(hostname -s 2>/dev/null || hostname)"
+  arch="$(uname -m)"
+  printf '\n'
+  fg256 51 '  ██╗  ██╗██╗████████╗██╗   ██╗██╗    ██╗ █████╗ '; printf '\n'
+  fg256 45 '  ██║ ██╔╝██║╚══██╔══╝██║   ██║██║    ██║██╔══██╗'; printf '\n'
+  fg256 39 '  █████╔╝ ██║   ██║   ██║   ██║██║ █╗ ██║███████║'; printf '\n'
+  fg256 33 '  ██╔═██╗ ██║   ██║   ██║   ██║██║███╗██║██╔══██║'; printf '\n'
+  fg256 27 '  ██║  ██╗██║   ██║   ╚██████╔╝╚███╔███╔╝██║  ██║'; printf '\n'
+  fg256 21 '  ╚═╝  ╚═╝╚═╝   ╚═╝    ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═╝'; printf '\n'
+  printf '\n'
+  printf '  %s%s\n' "${C_HEAD}C L U S T E R${C_RESET}" "${C_DIM}  ·  k3s worker, one command${C_RESET}"
+  [ "${DRY_RUN:-0}" = "1" ] && run_suffix="  ·  DRY RUN" || run_suffix=""
+  printf '  %s\n' "${C_DIM}v${VERSION}  ·  ${host}  ·  $(uname -s)/${arch}${run_suffix}${C_RESET}"
+  printf '  %s\n\n' "${C_DIM}───────────────────────────────────────────────${C_RESET}"
+}
+
+SPIN_PID=""
+spinner_start() {
+  [ -t 1 ] || return 0
+  SPIN_LABEL="$1"
+  SPIN_START=$SECONDS
+  (
+    i=0
+    frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    while :; do
+      printf '\r\033[2K  %s %s… %ss' "${frames[i]}" "$SPIN_LABEL" "$((SECONDS - SPIN_START))"
+      i=$(( (i + 1) % 10 ))
+      sleep 0.1
+    done
+  ) &
+  SPIN_PID=$!
+}
+spinner_stop() {
+  [ -n "$SPIN_PID" ] || return 0
+  kill "$SPIN_PID" 2>/dev/null
+  wait "$SPIN_PID" 2>/dev/null
+  SPIN_PID=""
+  printf '\r\033[2K'
+  if [ "${1:-0}" = "0" ]; then
+    printf '  %sok%s   %s  %s\n' "$C_OK" "$C_RESET" "$SPIN_LABEL" "$((SECONDS - SPIN_START))s"
+  else
+    printf '  %sfail%s %s  %s\n' "$C_ERR" "$C_RESET" "$SPIN_LABEL" "$((SECONDS - SPIN_START))s"
+  fi
+}
+# spinner_run "label" command... — runs the command in this shell, spins around it
+spinner_run() {
+  local label="$1"; shift
+  if [ ! -t 1 ]; then "$@"; return $?; fi
+  spinner_start "$label"
+  local rc=0
+  "$@" || rc=$?
+  spinner_stop "$rc"
+  return "$rc"
+}
+
 say()  { printf '%s\n' "$*"; }
 step() { printf '\n%s==>%s %s\n' "$C_HEAD" "$C_RESET" "$*"; }
 ok()   { printf '  %sok%s   %s\n' "$C_OK" "$C_RESET" "$*"; }
@@ -212,9 +275,11 @@ ensure_tailscale() {
     if [ "$DRY_RUN" = "1" ]; then
       run sh -c 'curl -fsSL https://tailscale.com/install.sh | sh'
     else
+      spinner_start "installing Tailscale"
       curl -fsSL https://tailscale.com/install.sh -o /tmp/kituwa-tailscale-install.sh
       sh /tmp/kituwa-tailscale-install.sh >/dev/null
       rm -f /tmp/kituwa-tailscale-install.sh
+      spinner_stop 0
       have tailscale || die "Tailscale install finished but the tailscale command is missing"
     fi
     ok "tailscale installed"
@@ -342,24 +407,35 @@ install_k3s() {
   local tmp
   tmp="$(mktemp -d)"
   if [ "$DRY_RUN" = "1" ]; then
-    say "  (dry run) would fetch $K3S_INSTALL_URL and run it with INSTALL_K3S_VERSION=$K3S_VERSION in agent mode"
+    # Show the real animation so a demo looks like the real thing.
+    spinner_start "downloading and verifying k3s $K3S_VERSION (dry run)"
+    sleep 2
+    spinner_stop 0
+    say "  (dry run) would run the official installer with INSTALL_K3S_VERSION=$K3S_VERSION in agent mode"
     rm -rf "$tmp"
     return 0
   fi
-  say "  downloading the installer script…"
   curl -fsSL "$K3S_INSTALL_URL" -o "$tmp/install.sh" || die "could not download the k3s installer"
-  say "  downloading and verifying the k3s binary — this is the slow part, 30–90 s on a normal connection"
+  spinner_start "downloading and verifying k3s $K3S_VERSION (about 70 MB)"
+  rc=0
   INSTALL_K3S_VERSION="$K3S_VERSION" \
   INSTALL_K3S_EXEC="agent" \
   INSTALL_K3S_SYMLINK="skip" \
-    sh "$tmp/install.sh"
+    sh "$tmp/install.sh" || rc=$?
+  spinner_stop "$rc"
   rm -rf "$tmp"
+  [ "$rc" = "0" ] || die "the k3s installer failed; see the output above"
   ok "k3s agent installed as a systemd service"
 }
 
 wait_for_agent() {
   step "starting the agent"
-  if [ "$DRY_RUN" = "1" ]; then say "  (dry run) would wait for k3s-agent.service"; return 0; fi
+  if [ "$DRY_RUN" = "1" ]; then
+    spinner_start "waiting for the service (dry run)"
+    sleep 3
+    spinner_stop 0
+    return 0
+  fi
 
   say "  systemd is starting k3s-agent.service. On a first run it can take one to"
   say "  three minutes: the agent registers with the cluster, gets its certificates,"
@@ -372,7 +448,11 @@ wait_for_agent() {
       ok "k3s-agent is running"
       break
     fi
-    printf '\r  waiting for the service… %ss' "$waited"
+    if [ -t 1 ]; then
+      printf '\r  %s waiting for the service… %ss' "$(printf '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' | cut -c$(( (waited % 10) + 1 )))" "$waited"
+    else
+      printf '  … waiting for the service… %ss\n' "$waited"
+    fi
     # Every 15 s, show the most recent line the agent logged, so the terminal is
     # never silent for long.
     if [ $((waited % 15)) -eq 0 ] && [ "$waited" -gt 0 ]; then
@@ -548,9 +628,7 @@ if [ -z "$CODE" ] && [ -n "$CODE_FILE" ]; then
   CODE="$(tr -d ' \n\r' < "$CODE_FILE")"
 fi
 
-say ""
-say "k3s-join $VERSION — add this machine to the Kituwa cluster as a worker"
-say "source: https://github.com/CrystalRockMarket/k3s-join (MIT)"
+banner
 
 if [ -n "$CODE" ]; then
   decode_code "$CODE"
