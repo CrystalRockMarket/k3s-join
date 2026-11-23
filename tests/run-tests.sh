@@ -42,6 +42,18 @@ else
 fi
 
 # ------------------------------------------------------------- fixtures ----
+head_ "powershell"
+if command -v pwsh >/dev/null 2>&1; then
+  expect "install.ps1 parses" pwsh -NoProfile -Command \
+    '$e=$null; [void][System.Management.Automation.Language.Parser]::ParseFile("install.ps1",[ref]$null,[ref]$e); if($e){exit 1}'
+else
+  printf '  skip pwsh is not installed (docker run mcr.microsoft.com/powershell:lts-alpine can check it)\n'
+fi
+# Two mistakes that cost a whole OS its installer once: a here-string header
+# with text after @" and a base64 runner built out of nested double quotes.
+if grep -q '@".' install.ps1; then bad "no text after a here-string header"; else ok "no text after a here-string header"; fi
+if grep -q 'bash -c \"\$(echo' install.ps1; then bad "no nested-quote base64 runner"; else ok "no nested-quote base64 runner"; fi
+
 head_ "join code parsing"
 TOKEN="K10abcdefghijklmnopqrstuvwxyz0123456789::server:0123456789abcdef"
 TSKEY="tskey-auth-kTESTKEY123-CNTRL"

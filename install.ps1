@@ -67,13 +67,24 @@ function Wsl-Exists {
 }
 
 function Invoke-Bash {
-  <# Runs a bash script inside the distribution. The script is base64 so no
-     PowerShell quoting can break it. -AsRoot uses sudo. #>
+  <# Runs a bash script inside the distribution and returns its output.
+     The script goes in over stdin, so no PowerShell quoting can break it. #>
   param([string]$Script, [switch]$AsRoot)
-  $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Script))
-  $runner = 'bash -c "$(echo ' + $b64 + ' | base64 -d)"'
-  if ($AsRoot) { $runner = 'sudo -n ' + $runner }
-  & wsl.exe -d $Distro -- bash -lc $runner
+  if ($AsRoot) {
+    return (($Script | & wsl.exe -d $Distro -- sudo -n bash -s) 2>$null | Out-String)
+  }
+  return (($Script | & wsl.exe -d $Distro -- bash -s) 2>$null | Out-String)
+}
+
+function Get-BashExit {
+  <# Same, but returns only the exit status. #>
+  param([string]$Script, [switch]$AsRoot)
+  $out = ""
+  if ($AsRoot) {
+    $out = ($Script | & wsl.exe -d $Distro -- sudo -n bash -s) 2>$null
+  } else {
+    $out = ($Script | & wsl.exe -d $Distro -- bash -s) 2>$null
+  }
   return $LASTEXITCODE
 }
 
@@ -81,7 +92,7 @@ function Write-CodeToWsl {
   param([string]$Value)
   $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Value))
   $script = "umask 077; mkdir -p /root/.kituwa; echo '$b64' | base64 -d > /root/.kituwa/code; chmod 600 /root/.kituwa/code"
-  return (Invoke-Bash -Script $script -AsRoot)
+  return (Get-BashExit -Script $script -AsRoot)
 }
 
 # ------------------------------------------------------------------ start --
@@ -132,10 +143,9 @@ if (-not (Wsl-Exists $Distro)) {
 } else { Ok "$Distro present" }
 
 if (-not $DryRun) {
-  $probe = Invoke-Bash -Script "echo ready"
-  if ($probe -ne 0) {
-    Die @"could not run bash in $Distro. Open '$Distro' from the Start menu once,
-finish its first-run user setup, then run this installer again."
+  $probe = (Invoke-Bash -Script "echo ready").Trim()
+  if ($probe -ne "ready") {
+    Die ("could not run bash in " + $Distro + ". Open '" + $Distro + "' from the Start menu once, finish its first-run user setup, then run this installer again.")
   }
 }
 Ok "bash works in $Distro"
@@ -148,11 +158,11 @@ if ($conf -notmatch "systemd\s*=\s*true") {
     Say "  (dry run) would set [boot] systemd=true in /etc/wsl.conf and restart WSL"
   } else {
     Say "  enabling systemd and restarting the Linux environment"
-    Invoke-Bash -Script "printf '[boot]\nsystemd=true\n' > /etc/wsl.conf" -AsRoot | Out-Null
+    $null = Invoke-Bash -Script "printf '[boot]\nsystemd=true\n' > /etc/wsl.conf" -AsRoot
     & wsl.exe --shutdown
     Start-Sleep -Seconds 3
-    $okSys = Invoke-Bash -Script "systemctl is-system-running >/dev/null 2>&1; echo `$?"
-    if ($okSys -match "^1$") { Warn "systemd did not come up; reboot Windows and run this again." }
+    $okSys = (Invoke-Bash -Script "systemctl is-system-running >/dev/null 2>&1; echo `$?").Trim()
+    if ($okSys -ne "0") { Warn "systemd did not come up; reboot Windows and run this again." }
   }
 } else { Ok "systemd already enabled" }
 
@@ -160,8 +170,8 @@ if ($conf -notmatch "systemd\s*=\s*true") {
 if ($Uninstall) {
   Step "removing the cluster agent from $Distro"
   if (-not $DryRun) {
-    Invoke-Bash -Script "if [ -x /usr/local/bin/k3s-agent-uninstall.sh ]; then sudo -n /usr/local/bin/k3s-agent-uninstall.sh; fi; sudo -n rm -rf /etc/rancher/k3s /root/.kituwa" | Out-Null
-    Invoke-Bash -Script "if command -v tailscale >/dev/null 2>&1; then sudo -n tailscale logout || true; fi" | Out-Null
+    $null = Invoke-Bash -Script "if [ -x /usr/local/bin/k3s-agent-uninstall.sh ]; then sudo -n /usr/local/bin/k3s-agent-uninstall.sh; fi; sudo -n rm -rf /etc/rancher/k3s /root/.kituwa" -AsRoot
+    $null = Invoke-Bash -Script "if command -v tailscale >/dev/null 2>&1; then sudo -n tailscale logout || true; fi" -AsRoot
   }
   if ($RemoveDistro -and -not $DryRun) {
     Say "  deleting the $Distro distribution"
@@ -206,7 +216,7 @@ if ($DryRun) {
   $rc = Write-CodeToWsl -Value $Code
   if ($rc -ne 0) { Die "could not write the join code inside $Distro" }
   $run = "set -e; curl -fsSL $InstallerUrl -o /root/.kituwa/install.sh; chmod 600 /root/.kituwa/install.sh; sudo -n sh /root/.kituwa/install.sh --code-file /root/.kituwa/code --yes --node-name '$safeName'; rm -f /root/.kituwa/code /root/.kituwa/install.sh"
-  $rc = Invoke-Bash -Script $run -AsRoot
+  $rc = Get-BashExit -Script $run -AsRoot
   if ($rc -ne 0) {
     Die "the installer failed inside $Distro. Read the messages above; nothing on Windows was changed."
   }
