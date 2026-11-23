@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask for a join code — k3s.kituwa.com</title>
+<meta name="description" content="Ask to donate a machine to the Kituwa cluster. Tell me what you have and what you would run; every request is high priority and answered by email.">
+<link rel="canonical" href="https://k3s.kituwa.com/join/">
+<meta property="og:title" content="Ask for a join code — Kituwa cluster">
+<meta property="og:description" content="One short form. Every request lands in the high-priority inbox and gets a reply by email.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://k3s.kituwa.com/join/">
+<meta property="og:image" content="https://k3s.kituwa.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0d0f12">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script defer src="/analytics.js"></script>
+<script defer src="https://analytics.shopdigital.art/matomo.js"></script>
+<script defer data-domain="k3s.kituwa.com" src="https://plausible.kituwa.com/js/script.js"></script>
+</head>
+<body>
+<a class="skip" href="#request">Skip to the form</a>
+
+<header class="top">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>k3s<span class="dim">.kituwa.com</span></span>
+  </a>
+  <nav class="top-nav">
+    <a href="/#install">Install</a>
+    <a href="/#how">How it works</a>
+    <a href="/#tiers">Tiers</a>
+    <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero compact">
+    <p class="eyebrow">Join code · high priority</p>
+    <h1>Ask for a join code</h1>
+    <p class="lede">One short form. It goes straight into the high-priority inbox,
+      and I answer by email. Tell me what the machine is and what you would like it
+      to do — that is all I need to decide.</p>
+  </section>
+
+  <section class="band flush" id="request">
+    <div class="form-grid">
+      <form id="join-form" class="join-form" novalidate>
+        <div class="field">
+          <label for="name">Your name <span class="req">required</span></label>
+          <input id="name" name="name" type="text" autocomplete="name" required maxlength="120" placeholder="Ada Lovelace">
+        </div>
+
+        <div class="field">
+          <label for="email">Email <span class="req">required</span></label>
+          <input id="email" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="you@example.com">
+          <p class="hint">Only used to reply and to send the join code.</p>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="os">Operating system</label>
+            <select id="os" name="os">
+              <option value="">Choose one</option>
+              <option>Linux</option>
+              <option>macOS</option>
+              <option>Windows</option>
+              <option>Other / a VM</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="tier">Machine class</label>
+            <select id="tier" name="tier">
+              <option value="">Not sure</option>
+              <option>Node — 2–4 cores, 4–8 GB</option>
+              <option>Workhorse — 8–12 cores, 16–32 GB</option>
+              <option>Cluster — 16+ cores, 32 GB+</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="machine">Machine <span class="opt">optional</span></label>
+          <input id="machine" name="machine" type="text" maxlength="120" placeholder="Optiplex 7060, spare laptop, VPS">
+        </div>
+
+        <div class="field">
+          <label for="specs">CPU, memory, disk <span class="opt">optional</span></label>
+          <input id="specs" name="specs" type="text" maxlength="200" placeholder="8 cores / 16 GB / 500 GB SSD">
+        </div>
+
+        <div class="field">
+          <label for="body">What would you like it to do? <span class="req">required</span></label>
+          <textarea id="body" name="body" rows="5" required minlength="10" maxlength="4000"
+            placeholder="It sits idle most of the day. Any workload is fine, batch jobs especially."></textarea>
+          <p class="hint">10 characters minimum. Plain text, no links needed.</p>
+        </div>
+
+        <div class="field hp" aria-hidden="true">
+          <label for="_hp">Leave this empty</label>
+          <input id="_hp" name="_hp" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button class="btn primary submit" type="submit" id="submit">Send the request</button>
+        <p class="hint form-note">Sending puts it at the top of the inbox with a
+          Telegram alert. No account, no marketing list.</p>
+        <p class="form-status" id="status" role="status" aria-live="polite"></p>
+      </form>
+
+      <aside class="form-aside">
+        <h2>What happens next</h2>
+        <ol class="steps compact-steps">
+          <li><h3>It lands as high priority</h3><p>Every form submission is flagged
+            and pushed to my phone and inbox the moment it arrives.</p></li>
+          <li><h3>I read it and reply</h3><p>Usually within a day. If it is a fit, the
+            reply carries a join code for that machine.</p></li>
+          <li><h3>You run one command</h3><p>The code is a single line. Paste it where
+            the installer asks; nothing else is needed.</p></li>
+          <li><h3>You can leave any time</h3><p>One uninstall command. No notice, no
+            questions.</p></li>
+        </ol>
+        <p class="note">Prefer email? <a href="https://services.kituwa.com/quote">Use the
+          general inquiry form</a> instead — same inbox, same priority.</p>
+      </aside>
+    </div>
+
+    <noscript>
+      <p class="callout"><strong>This form needs JavaScript.</strong> Enable it, or
+        write to the address on <a href="https://kituwa.com/">kituwa.com</a> and mention
+        “join code”.</p>
+    </noscript>
+  </section>
+</main>
+
+<footer class="foot">
+  <div>
+    <p><strong>Kituwa</strong> — small tools, run honestly.</p>
+    <p class="note">This page is served from the cluster it describes.</p>
+  </div>
+  <nav>
+    <a href="/">Home</a>
+    <a href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">Source</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+  </nav>
+</footer>
+
+<script src="/join/join.js" defer></script>
+</body>
+</html>

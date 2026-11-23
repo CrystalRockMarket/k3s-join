@@ -107,6 +107,12 @@ if [ -f site/index.html ]; then
   expect "page has a title" grep -q "<title>" site/index.html
   expect "page links the repository" grep -q "github.com/CrystalRockMarket/k3s-join" site/index.html
   expect "page installs from the published path" grep -q "https://k3s.kituwa.com/install.sh" site/index.html
+  expect "join form exists" test -f site/join/index.html
+  expect "join form posts to the intake" grep -q "/api/v1/forms/k3s-join" site/join/join.js
+  expect "join form has a honeypot" grep -q '_hp' site/join/index.html
+  expect "join form asks for a name" grep -q 'for="name"' site/join/index.html
+  expect "hero links the join form" grep -q 'href="/join/"' site/index.html
+  expect "nginx proxies the intake" grep -q "api/v1/forms/" deploy/k3s-kituwa.conf
   if grep -q "TODO\|FIXME\|lorem ipsum" site/index.html; then bad "no placeholder text"; else ok "no placeholder text"; fi
 else
   bad "site/index.html exists"

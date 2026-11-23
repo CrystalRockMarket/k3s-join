@@ -73,7 +73,7 @@ ok "nginx reloaded"
 
 say "verify"
 sleep 2
-for path in / /styles.css /app.js /install.sh /install-macos.sh /install.ps1 /watchdog/ /robots.txt; do
+for path in / /styles.css /app.js /install.sh /install-macos.sh /install.ps1 /join/ /join/join.js /watchdog/ /robots.txt; do
   code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN$path" || true)"
   printf '  %-18s %s\n' "$path" "$code"
   [ "$code" = "200" ] || die "$path returned $code"

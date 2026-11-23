@@ -385,3 +385,76 @@ tbody td:first-child { color: var(--ink); }
 }
 
 :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+/* ------------------------------------------------- ask for a join code --- */
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: 2.2rem;
+  align-items: start;
+}
+
+.join-form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.6rem;
+}
+
+.field { margin: 0 0 1.05rem; display: grid; gap: .38rem; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.field label { font-size: .86rem; color: var(--ink); font-weight: 500; }
+.field .req, .field .opt {
+  font-family: var(--mono); font-size: .66rem; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--soft); margin-left: .4rem;
+}
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: #07090c;
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  padding: .7rem .8rem;
+  font: inherit;
+  font-size: .94rem;
+}
+.field textarea { resize: vertical; min-height: 7rem; line-height: 1.55; }
+.field input::placeholder, .field textarea::placeholder { color: #4f5967; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: 2px solid var(--signal); outline-offset: 1px; border-color: var(--signal);
+}
+.field input[aria-invalid="true"], .field textarea[aria-invalid="true"] {
+  border-color: #ff7a6b;
+}
+.hint { margin: 0; color: var(--soft); font-size: .79rem; }
+
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.join-form .submit { width: 100%; justify-content: center; margin-top: .35rem; }
+.join-form .submit[disabled] { opacity: .6; cursor: progress; }
+.form-note { margin-top: .7rem; text-align: center; }
+
+.form-status { margin: 1rem 0 0; font-size: .92rem; min-height: 1.4em; }
+.form-status.good {
+  border: 1px solid rgba(184, 242, 74, .45);
+  background: rgba(184, 242, 74, .07);
+  color: #d9f7a4;
+  padding: .85rem 1rem; border-radius: var(--radius-sm);
+}
+.form-status.bad {
+  border: 1px solid #ff7a6b;
+  background: rgba(255, 122, 107, .08);
+  color: #ffb3aa;
+  padding: .85rem 1rem; border-radius: var(--radius-sm);
+}
+.form-status.busy { color: var(--muted); }
+
+.form-aside h2 { font-size: 1.05rem; margin: 0 0 .8rem; font-weight: 600; }
+.compact-steps { margin-bottom: 1rem; }
+.compact-steps li { padding: .85rem 1rem .85rem 3rem; }
+.compact-steps li::before { top: .9rem; left: 1rem; }
+
+@media (max-width: 860px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+}
