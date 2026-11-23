@@ -204,7 +204,7 @@ if (-not $safeName) { $safeName = "windows-node" }
 
 Say ""
 Say "  This will join this PC to the Kituwa cluster as node '$safeName'."
-Say "  It runs a Linux worker inside WSL2 and does not share your Windows files."
+Say "  It runs a Linux worker inside WSL2; cluster workloads get no access to your Windows files."
 Say "  It is reversible at any time with: .\install.ps1 -Uninstall"
 
 # --------------------------------------------------------------------- run --

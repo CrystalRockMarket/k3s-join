@@ -104,6 +104,7 @@ ensure_vm() {
     --memory "$VM_MEMORY" \
     --disk "$VM_DISK" \
     --containerd none \
+    --set '.mounts = []' \
     template://ubuntu
   ok "VM $VM_NAME created"
 }

@@ -84,8 +84,9 @@ curl -fsSL https://k3s.kituwa.com/install.sh | less
 
 ## What it does not do
 
-- No access to your files. Containers get their own filesystems; your home
-  directory is not mounted.
+- No access to your files. Containers get their own filesystems. On macOS the
+  VM is created with no host mounts at all; on Windows the WSL distribution can
+  read drives like any WSL shell, but nothing is mounted into a workload.
 - No shell for anyone. A worker does not hand out logins.
 - No mining, no network scanning, no proxying, no wallet or payment data.
 - No hidden binaries: no compiled artifact ships with this project.

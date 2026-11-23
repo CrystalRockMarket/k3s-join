@@ -113,15 +113,15 @@
     <div class="panel" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac" hidden>
       <pre><code>curl -fsSL https://k3s.kituwa.com/install-macos.sh | sh -s -- --code 'k3s1.…'</code></pre>
       <p class="note">k3s is Linux-only, so this creates a small Linux VM with Lima
-        and joins the VM. Apple silicon and Intel. The VM gets no access to your
-        home folder.</p>
+        and joins the VM. Apple silicon and Intel. The VM is created with no host
+        mounts, so it cannot see your home folder.</p>
     </div>
 
     <div class="panel" id="panel-win" role="tabpanel" aria-labelledby="tab-win" hidden>
       <pre><code>irm https://k3s.kituwa.com/install.ps1 | iex</code></pre>
       <p class="note">Needs an elevated PowerShell and WSL2; the script enables
-        systemd inside WSL and runs the same Linux installer there. Your Windows
-        files stay out of the cluster. Paste the join code when asked.</p>
+        systemd inside WSL and runs the same Linux installer there. Nothing on
+        Windows is mounted into a cluster workload. Paste the join code when asked.</p>
     </div>
 
     <div class="callout">
