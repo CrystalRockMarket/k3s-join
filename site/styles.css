@@ -501,3 +501,16 @@ tbody td:first-child { color: var(--ink); }
 .code-panel pre { margin: .7rem 0; }
 .code-panel pre code { font-size: .78rem; white-space: pre-wrap; word-break: break-all; }
 .code-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: .4rem 0 1rem; }
+
+.os-line { display: grid; grid-template-columns: 1fr auto; gap: .4rem .7rem; align-items: center; margin: .2rem 0 .9rem; }
+.os-label { grid-column: 1 / -1; font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--soft); }
+.os-line pre { margin: 0; }
+.os-line .btn.small { padding: .4rem .8rem; font-size: .8rem; }
+
+.os-line { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .55rem .8rem; margin: 0 0 .6rem; background: rgba(255,255,255,.02); }
+.os-line summary { cursor: pointer; font-family: var(--mono); font-size: .72rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted); }
+.os-line[open] summary { color: var(--ink); margin-bottom: .5rem; }
+.os-line pre { margin: 0 0 .55rem; }
+.os-line pre code { max-height: 9rem; overflow: auto; display: block; }

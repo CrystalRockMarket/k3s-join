@@ -71,7 +71,7 @@ if [ -n "$REVOKE" ]; then
   NAME="$(sanitize "$REVOKE")"
   say "looking for bootstrap tokens minted for join:$NAME"
   if [ "$DRY_RUN" = "1" ]; then
-    ssh "$SERVER_HOST" "sudo -n k3s kubectl -n kube-system get secrets -o custom-columns=NAME:.metadata.name,DESC:.metadata.annotations.k3s\\.cattle\\.io/description --no-headers" 2>/dev/null | grep "join:$NAME" || true
+    ssh "$SERVER_HOST" "sudo -n k3s kubectl -n kube-system get secrets -o custom-columns=NAME:.metadata.name,DESC:.data.description --no-headers" 2>/dev/null | grep "am9pbjo" || true
     exit 0
   fi
   removed=0
@@ -81,8 +81,8 @@ if [ -n "$REVOKE" ]; then
     say "revoked $secret"
     removed=$((removed + 1))
   done < <(ssh "$SERVER_HOST" \
-    "sudo -n k3s kubectl -n kube-system get secrets -o custom-columns=NAME:.metadata.name,DESC:.metadata.annotations.k3s\\.cattle\\.io/description --no-headers" 2>/dev/null \
-    | grep "join:$NAME" || true)
+    "sudo -n k3s kubectl -n kube-system get secrets -o custom-columns=NAME:.metadata.name,DESC:.data.description --no-headers" 2>/dev/null \
+    | awk -v want="join:$NAME" '{ cmd="echo " $2 " | base64 -d"; cmd | getline d; close(cmd); if (d==want) print $1 }' || true)
   [ "$removed" -gt 0 ] || say "no live token found for join:$NAME (it may already have been revoked)"
   exit 0
 fi

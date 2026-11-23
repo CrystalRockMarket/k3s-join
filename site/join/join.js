@@ -74,6 +74,16 @@
     });
   }
 
+  function commandFor(platform, code) {
+    if (platform === "linux") {
+      return "curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --code '" + code + "'";
+    }
+    if (platform === "macos") {
+      return "curl -fsSL https://k3s.kituwa.com/install-macos.sh | sh -s -- --code '" + code + "'";
+    }
+    return "$env:KITUWA_JOIN_CODE='" + code + "'; irm https://k3s.kituwa.com/install.ps1 | iex";
+  }
+
   function showCode(data) {
     form.hidden = true;
     var panel = document.createElement("div");
@@ -85,14 +95,22 @@
       '<pre><code id="join-code">' + esc(data.code) + "</code></pre>" +
       '<div class="code-actions">' +
       '<button type="button" class="btn primary" id="copy-code">Copy the code</button>' +
-      '<button type="button" class="btn" id="copy-linux">Copy the Linux command</button>' +
       "</div>" +
-      '<p class="note">Then on the machine:</p>' +
-      "<pre><code>" + esc(data.install_linux) + "</code></pre>" +
-      '<p class="note">macOS: <code>' + esc(data.install_macos) + "</code></p>" +
+      '<p class="note">Pick your system, copy the line, paste it into a terminal:</p>' +
+      ["linux", "macos", "windows"].map(function (platform, i) {
+        var label = platform === "windows" ? "Windows (PowerShell, as admin)" :
+                    platform === "macos" ? "macOS" : "Linux";
+        return "<details class=\"os-line\"" + (i === 0 ? " open" : "") + ">" +
+          "<summary>" + label + "</summary>" +
+          "<pre><code>" + esc(commandFor(platform, data.code)) + "</code></pre>" +
+          '<button type="button" class="btn small" data-copy="' + platform + '">Copy the ' +
+          label.split(" ")[0] + " command</button>" +
+          "</details>";
+      }).join("") +
       '<p class="form-status good">That is everything. The machine appears on ' +
       '<a href="/points/">the points chart</a> by name once it is idle.</p>';
-    status.parentNode.insertBefore(panel, status);
+    form.parentNode.insertBefore(panel, form.nextSibling);
+    form.hidden = true;
     status.textContent = "";
 
     function copy(text, button, label) {
@@ -104,8 +122,10 @@
     panel.querySelector("#copy-code").addEventListener("click", function () {
       copy(data.code, this, "Copy the code");
     });
-    panel.querySelector("#copy-linux").addEventListener("click", function () {
-      copy(data.install_linux, this, "Copy the Linux command");
+    Array.prototype.forEach.call(panel.querySelectorAll("[data-copy]"), function (button) {
+      button.addEventListener("click", function () {
+        copy(commandFor(button.getAttribute("data-copy"), data.code), button, "Copy");
+      });
     });
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -179,7 +199,7 @@
       note.className = "note";
       note.innerHTML = "Nothing else to do. Questions? " +
         '<a href="https://services.kituwa.com/quote">Write again</a>.';
-      status.parentNode.insertBefore(note, status.nextSibling);
+      form.parentNode.insertBefore(note, form.nextSibling);
     }).catch(function (error) {
       button.disabled = false;
       say(error.message || "Something went wrong. Please try again.", "bad");
@@ -200,7 +220,9 @@
       }
     }).catch(function () {});
 
-  fetchToken().catch(function () {
+  fetchToken().then(function () {
+    button.disabled = false;
+  }).catch(function () {
     say("The form could not start (no token). Reload the page once.", "bad");
     button.disabled = true;
   });

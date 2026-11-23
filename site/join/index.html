@@ -103,7 +103,8 @@
         </div>
 
         <p class="hint" id="enroll-hint">Checking whether the cluster can issue a code right now…</p>
-        <button class="btn primary submit" type="submit" id="submit">Get my join code</button>
+        <noscript><p class="callout">This form needs JavaScript. Email the address on <a href="https://services.kituwa.com/quote">the contact form</a> and mention “join code”.</p></noscript>
+        <button class="btn primary submit" type="submit" id="submit" disabled>Get my join code</button>
         <p class="hint form-note">No account, no marketing list. Your code is shown
           once and never stored on the server.</p>
         <p class="form-status" id="status" role="status" aria-live="polite"></p>
@@ -114,8 +115,8 @@
         <ol class="steps compact-steps">
           <li><h3>You get the code immediately</h3><p>If there is room, the code is
             minted for this request only and shown once. No email round-trip.</p></li>
-          <li><h3>I read it and reply</h3><p>Usually within a day. If it is a fit, the
-            reply carries a join code for that machine.</p></li>
+          <li><h3>I keep the record</h3><p>Your email is how I reach you, credit the
+            machine and revoke the code if it is ever lost. It is not a waiting list.</p></li>
           <li><h3>You run one command</h3><p>The code is a single line. Paste it where
             the installer asks; nothing else is needed.</p></li>
           <li><h3>You can leave any time</h3><p>One uninstall command. No notice, no
@@ -147,6 +148,6 @@
   </nav>
 </footer>
 
-<script src="/join/join.js?v=3" defer></script>
+<script src="/join/join.js?v=6" defer></script>
 </body>
 </html>

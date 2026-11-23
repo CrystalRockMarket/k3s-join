@@ -184,6 +184,7 @@ if ($Uninstall) {
 }
 
 # --------------------------------------------------------------- join code --
+if (-not $Code -and $env:KITUWA_JOIN_CODE) { $Code = $env:KITUWA_JOIN_CODE.Trim() }
 if (-not $Code -and $CodeFile) {
   if (-not (Test-Path $CodeFile)) { Die "cannot read $CodeFile" }
   $Code = (Get-Content -Raw $CodeFile).Trim()
