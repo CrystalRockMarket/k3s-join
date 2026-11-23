@@ -299,7 +299,17 @@ install_k3s() {
   if [ -x /usr/local/bin/k3s ] && [ -f /etc/systemd/system/k3s-agent.service ]; then
     step "k3s is already installed on this machine"
     ok "keeping the binary; only the join settings change"
-    run systemctl restart k3s-agent || true
+    # A failed earlier attempt leaves the agent retrying with a dead token, and
+    # the unit has TimeoutStartSec=0, so a plain `systemctl restart` blocks for
+    # ever. Stop it with a bound, clear the stale client credentials, start it
+    # without waiting, and let the normal wait loop report progress.
+    run timeout 30 systemctl stop k3s-agent || true
+    run systemctl reset-failed k3s-agent || true
+    if [ -d /var/lib/rancher/k3s/agent ]; then
+      say "  clearing the agent credentials left by the earlier attempt"
+      run rm -rf /var/lib/rancher/k3s/agent
+    fi
+    run systemctl start --no-block k3s-agent || true
     return 0
   fi
   step "installing k3s $K3S_VERSION (official installer, sha256-verified)"
@@ -333,7 +343,7 @@ wait_for_agent() {
   say "  is not stuck."
   local waited=0 line last=""
   while [ "$waited" -lt 240 ]; do
-    if systemctl is-active --quiet k3s-agent; then
+    if systemctl is-active --quiet k3s-agent && ! systemctl is-failed --quiet k3s-agent 2>/dev/null; then
       printf '\r  %s\n' "$(printf '%*s' 48 '')"
       ok "k3s-agent is running"
       break
@@ -342,6 +352,16 @@ wait_for_agent() {
     # Every 15 s, show the most recent line the agent logged, so the terminal is
     # never silent for long.
     if [ $((waited % 15)) -eq 0 ] && [ "$waited" -gt 0 ]; then
+      # A dead token fails fast; do not sit here for four minutes pretending.
+      if [ "$(journalctl -u k3s-agent --since '-2 min' --no-pager 2>/dev/null | grep -ciE 'invalid bearer token|not authorized')" -ge 2 ]; then
+        printf '\r  %s\n' "$(printf '%*s' 40 '')"
+        say ""
+        die "the cluster rejected this machine's token (401 Not authorized).
+
+The join code is no longer valid: it was revoked, expired, or the machine is
+still holding an old one. Get a fresh code at https://k3s.kituwa.com/join/ and
+run the same command again — it now clears the stale credentials and restarts."
+      fi
       line="$(journalctl -u k3s-agent -n 40 --no-pager -o cat 2>/dev/null | tail -1 | cut -c1-100)"
       if [ -n "$line" ] && [ "$line" != "$last" ]; then
         printf '\r  %s\n  %s\n' "$(printf '%*s' 40 '')" "$line"

@@ -528,3 +528,7 @@ tbody td:first-child { color: var(--ink); }
 .stat-n { font-family: var(--mono); font-size: 1.5rem; color: var(--signal); }
 .stat-l { font-family: var(--mono); font-size: .66rem; text-transform: uppercase; letter-spacing: .1em; color: var(--soft); }
 @media (max-width: 720px) { .stat-row { grid-template-columns: 1fr 1fr; } }
+
+.px { image-rendering: pixelated; vertical-align: -3px; margin-right: .45rem; }
+.worker-cell strong { font-size: .98rem; }
+.worker-points { display: inline-block; margin-left: .6rem; font-family: var(--mono); font-size: .72rem; color: var(--signal); }

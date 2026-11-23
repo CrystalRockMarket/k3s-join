@@ -22,11 +22,14 @@
       document.getElementById("s-24h").textContent = fmt(d.points_24h);
       document.getElementById("s-backlog").textContent = fmt(d.backlog_points);
       document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
+        var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
         return "<tr>" +
-          "<td><strong>" + n.node + "</strong></td>" +
+          '<td class="worker-cell"><img class="px" src="/cluster/' + art + '" width="16" height="16" alt="">' +
+          "<strong>" + n.node + "</strong>" +
+          '<span class="worker-points">' + fmt(n.points) + " points</span></td>" +
           "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
           "<td>" + (n.online ? '<span class="pill">online</span>' : "offline") + "</td>" +
-          "<td>" + fmt(n.points) + "</td>" +
+          "<td><strong>" + fmt(n.points) + "</strong></td>" +
           "<td>" + n.share + "%</td>" +
           "<td>" + ago(n.last_seen) + "</td></tr>";
       }).join("") || '<tr><td colspan="6" class="note">No workers have reported yet.</td></tr>';
