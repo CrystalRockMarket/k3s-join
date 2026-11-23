@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status — k3s.kituwa.com</title>
+<meta name="description" content="What is monitored for the Kituwa cluster and how to check it yourself.">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>k3s<span class="dim">.kituwa.com</span></span>
+  </a>
+  <nav class="top-nav">
+    <a href="/#install">Install</a>
+    <a href="/#tiers">Tiers</a>
+    <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero compact">
+    <p class="eyebrow">Status</p>
+    <h1>What is watched</h1>
+    <p class="lede">This page is static on purpose: it is served by the control plane,
+      so it loads even when every worker is offline. Live numbers live on the Hub.</p>
+  </section>
+
+  <section class="band flush">
+    <h2>Checks</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Check</th><th>How often</th><th>What a failure looks like</th></tr></thead>
+        <tbody>
+          <tr><td>This page</td><td>Every 60 s</td><td>HTTP 5xx or a timeout at the edge</td></tr>
+          <tr><td>Control plane API</td><td>Every 60 s</td><td>Nodes go <code>NotReady</code>, workloads stop scheduling</td></tr>
+          <tr><td>Worker heartbeat</td><td>Every 60 s</td><td>A node stays <code>NotReady</code> past its grace period</td></tr>
+          <tr><td>Installer download</td><td>Every 15 min</td><td><code>/install.sh</code> returns anything but a shell script</td></tr>
+          <tr><td>TLS certificate</td><td>Daily</td><td>Expiry inside 14 days</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Live node state, run history and the weekly grid are on the
+      project's page in the Hub:
+      <a href="https://metrics.kituwa.com/projects">metrics.kituwa.com/projects</a>.</p>
+  </section>
+
+  <section class="band">
+    <h2>Check it yourself</h2>
+    <pre><code>curl -fsSL https://k3s.kituwa.com/install.sh | head -3</code></pre>
+    <pre><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes -o wide'</code></pre>
+    <p class="note">If a volunteer node is offline, nothing on this site breaks: the
+      page and the installers are served by the host, not by a worker.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div>
+    <p><strong>Kituwa</strong> — small tools, run honestly.</p>
+  </div>
+  <nav>
+    <a href="/">Home</a>
+    <a href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">Source</a>
+    <a href="https://kituwa.com/contact">Contact</a>
+  </nav>
+</footer>
+</body>
+</html>

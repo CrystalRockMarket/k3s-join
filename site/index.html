@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>k3s-join — donate compute to the Kituwa cluster</title>
+<meta name="description" content="One command turns a spare Linux box, Mac or Windows PC into a worker node on the Kituwa k3s cluster. Open source, MIT, reversible in one command. Joining is by invite.">
+<link rel="canonical" href="https://k3s.kituwa.com/">
+<meta property="og:title" content="k3s-join — donate compute to the Kituwa cluster">
+<meta property="og:description" content="Turn an idle machine into a worker node for the Kituwa cluster. One command, open source, leave whenever you want.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://k3s.kituwa.com/">
+<meta name="theme-color" content="#0d0f12">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#install">Skip to install</a>
+
+<header class="top">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>k3s<span class="dim">.kituwa.com</span></span>
+  </a>
+  <nav class="top-nav">
+    <a href="#install">Install</a>
+    <a href="#how">How it works</a>
+    <a href="#tiers">Tiers</a>
+    <a href="#trust">Trust</a>
+    <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <p class="eyebrow">Kituwa cluster · worker nodes</p>
+    <h1>Give an idle machine<br>a job worth doing.</h1>
+    <p class="lede">
+      <strong>k3s-join</strong> turns a spare Linux box, a Mac or a Windows PC into a
+      worker node on the Kituwa cluster. One command installs it, one command
+      removes it, and none of your files go with it.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="#get-code">Get a join code</a>
+      <a class="btn" href="#install">See the one-liner</a>
+    </div>
+    <dl class="facts">
+      <div><dt>Nodes now</dt><dd>2</dd></div>
+      <div><dt>Runtime</dt><dd>k3s v1.36.5</dd></div>
+      <div><dt>Source</dt><dd>MIT</dd></div>
+      <div><dt>Access</dt><dd>Invite</dd></div>
+    </dl>
+  </section>
+
+  <section class="band" aria-labelledby="what">
+    <h2 id="what">What you are joining</h2>
+    <p class="prose">
+      Kituwa runs a small Kubernetes cluster on hardware it owns. A control plane
+      schedules the work; worker nodes run the containers. Right now the worker
+      is one machine in a room, and every spare machine that joins replaces a
+      cloud bill with somebody's unused capacity.
+    </p>
+    <div class="grid three">
+      <article class="card">
+        <p class="card-label">Control plane</p>
+        <h3>kituwa-cloud-1</h3>
+        <p>Schedules workloads, serves the published sites, holds cluster state.
+           Hosted, always on, not accepting volunteers.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Worker</p>
+        <h3>trinity</h3>
+        <p>Runs the builds, scrapes, renders and batch jobs. This is the kind of
+           machine a volunteer adds: ordinary hardware, doing real work.</p>
+      </article>
+      <article class="card accent">
+        <p class="card-label">Open slot</p>
+        <h3>your machine</h3>
+        <p>A worker takes container workloads from the cluster and nothing else.
+           No shell for anyone, no access to your files.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="band" id="install" aria-labelledby="install-h">
+    <h2 id="install-h">Install</h2>
+    <p class="prose">
+      You need a join code first — the cluster is invite-only, because a worker
+      has to be reachable by the cluster and by nothing else. Paste it where the
+      command asks.
+    </p>
+
+    <div class="tabs" role="tablist" aria-label="Operating system">
+      <button role="tab" id="tab-linux" aria-controls="panel-linux" aria-selected="true">Linux</button>
+      <button role="tab" id="tab-mac" aria-controls="panel-mac" aria-selected="false">macOS</button>
+      <button role="tab" id="tab-win" aria-controls="panel-win" aria-selected="false">Windows</button>
+    </div>
+
+    <div class="panel" id="panel-linux" role="tabpanel" aria-labelledby="tab-linux">
+      <pre><code>curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --code 'k3s1.…'</code></pre>
+      <p class="note">Any modern systemd distribution on amd64, arm64 or armv7.
+        Needs 2 GB RAM and 8 GB free on <code>/var</code>.</p>
+    </div>
+
+    <div class="panel" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac" hidden>
+      <pre><code>curl -fsSL https://k3s.kituwa.com/install-macos.sh | sh -s -- --code 'k3s1.…'</code></pre>
+      <p class="note">k3s is Linux-only, so this creates a small Linux VM with Lima
+        and joins the VM. Apple silicon and Intel. The VM gets no access to your
+        home folder.</p>
+    </div>
+
+    <div class="panel" id="panel-win" role="tabpanel" aria-labelledby="tab-win" hidden>
+      <pre><code>irm https://k3s.kituwa.com/install.ps1 | iex</code></pre>
+      <p class="note">Needs an elevated PowerShell and WSL2; the script enables
+        systemd inside WSL and runs the same Linux installer there. Your Windows
+        files stay out of the cluster. Paste the join code when asked.</p>
+    </div>
+
+    <div class="callout">
+      <p><strong>Read it before you run it.</strong> Both scripts are plain shell
+      and PowerShell, with no bundled binaries. Read them first:
+      <code>curl -fsSL https://k3s.kituwa.com/install.sh | less</code>.</p>
+    </div>
+
+    <p class="note">Leaving is one command:
+      <code>curl -fsSL https://k3s.kituwa.com/install.sh | sudo sh -s -- --uninstall --remove-tailscale</code>
+    </p>
+  </section>
+
+  <section class="band" id="how" aria-labelledby="how-h">
+    <h2 id="how-h">What the installer actually does</h2>
+    <ol class="steps">
+      <li><h3>Checks the machine</h3><p>Linux with systemd, supported architecture,
+        at least 2 GB of RAM and 8 GB free on <code>/var</code>. It refuses rather
+        than half-installs.</p></li>
+      <li><h3>Joins the tailnet</h3><p>Installs Tailscale from its official script
+        and joins with the key inside your join code, tagged <code>tag:k3s</code>.
+        That is the only network path the cluster uses.</p></li>
+      <li><h3>Writes two small files</h3><p><code>/etc/rancher/k3s/config.yaml</code>
+        and a <code>0600</code> token file. Nothing in your home directory.</p></li>
+      <li><h3>Runs the official k3s installer</h3><p>Agent mode only, version pinned
+        to the cluster, binary checked against its published sha256.</p></li>
+      <li><h3>Waits for the node</h3><p>Confirms <code>k3s-agent</code> is active and
+        reports the node name. If it fails, it prints the log and stops.</p></li>
+    </ol>
+    <p class="prose">The node is then a normal Kubernetes worker: the scheduler
+      places pods on it, and it runs them in containers until you remove it.</p>
+  </section>
+
+  <section class="band" aria-labelledby="req">
+    <h2 id="req">Requirements</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Item</th><th>Minimum</th><th>Comfortable</th></tr></thead>
+        <tbody>
+          <tr><td>CPU</td><td>2 cores</td><td>8 cores</td></tr>
+          <tr><td>Memory</td><td>2 GB</td><td>16 GB</td></tr>
+          <tr><td>Disk free</td><td>8 GB</td><td>50 GB</td></tr>
+          <tr><td>Network</td><td>Any connection that can reach the tailnet</td><td>Wired or stable Wi-Fi</td></tr>
+          <tr><td>Uptime</td><td>Only while it is on — the node drains when it leaves</td><td>Left running</td></tr>
+          <tr><td>OS</td><td>Linux with systemd, macOS 13+, Windows 10/11 with WSL2</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">A laptop that sleeps is fine: the node leaves the scheduler
+      while it is asleep and rejoins on wake.</p>
+  </section>
+
+  <section class="band" aria-labelledby="wont">
+    <h2 id="wont">What it will not do</h2>
+    <div class="grid two">
+      <ul class="checks">
+        <li><strong>No access to your files.</strong> The node runs containers with
+          their own filesystems. Your home directory is not mounted.</li>
+        <li><strong>No shell for anyone.</strong> Cluster access is limited to the
+          control plane; a worker does not hand out logins.</li>
+        <li><strong>No mining, no scans, no proxies.</strong> This does not join a
+          mining pool, probe networks or relay traffic.</li>
+      </ul>
+      <ul class="checks">
+        <li><strong>No crypto keys, no wallets, no card data.</strong> None of that
+          runs on worker nodes.</li>
+        <li><strong>No lock-in.</strong> One uninstall command removes the agent,
+          its config and, if you ask, the tailnet login.</li>
+        <li><strong>No hidden binaries.</strong> Everything is a readable script
+          from a public MIT repository.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band" id="tiers" aria-labelledby="tiers-h">
+    <h2 id="tiers-h">Contributor tiers</h2>
+    <p class="prose">
+      Tiers describe the machine you bring, not a payment plan. Today they are
+      credit and a line on this page — nothing more. If the work earns money one
+      day, rewarding contributors is something worth doing, but it is a hope, not
+      a promise, and nothing here should be read as an investment.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Machine</th><th>What it is good for</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill">Node</span></td><td>2–4 cores, 4–8 GB RAM</td><td>Small services, scheduled jobs, builds</td></tr>
+          <tr><td><span class="pill">Workhorse</span></td><td>8–12 cores, 16–32 GB RAM</td><td>Renders, video, scraping at scale</td></tr>
+          <tr><td><span class="pill">Cluster</span></td><td>16+ cores, 32 GB+ RAM, GPU optional</td><td>Batch pipelines and model work</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">A tier changes nothing about how the cluster treats the node:
+      workloads are scheduled by capacity and labels, never by tier name.</p>
+  </section>
+
+  <section class="band" id="get-code" aria-labelledby="code-h">
+    <h2 id="code-h">Get a join code</h2>
+    <p class="prose">
+      Joining is by invitation. A join code is a single line that carries the
+      cluster address, a bootstrap token limited to joining a worker, and a
+      tailnet key tagged for cluster use. Codes are issued per machine and can be
+      revoked at any time — revoking one removes that machine's access without
+      touching anyone else.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="https://kituwa.com/contact">Ask for a join code</a>
+      <a class="btn" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">Read the source first</a>
+    </div>
+  </section>
+
+  <section class="band" id="trust" aria-labelledby="trust-h">
+    <h2 id="trust-h">Trust, plainly</h2>
+    <div class="grid two">
+      <article class="card">
+        <h3>You can audit everything</h3>
+        <p>The installer, the macOS wrapper, the Windows wrapper and the operator
+           tool that mints codes are all in one public repository. No compiled
+           artifact, no obfuscation, no third-party download besides Tailscale and
+           the official k3s installer.</p>
+        <p><a href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">github.com/CrystalRockMarket/k3s-join</a></p>
+      </article>
+      <article class="card">
+        <h3>What the join code contains</h3>
+        <p>A server address, a bootstrap token that can only be used to add a
+           worker, and a tailnet auth key scoped to the cluster tag. It cannot
+           read cluster secrets, run commands as you, or reach your network.</p>
+      </article>
+    </div>
+    <p class="note">A worker is a machine the cluster can schedule pods on. If that
+      ever feels wrong, <code>--uninstall</code> ends it, and the node drains its
+      pods before it goes.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div>
+    <p><strong>Kituwa</strong> — small tools, run honestly.</p>
+    <p class="note">This page is served from the cluster it describes.</p>
+  </div>
+  <nav>
+    <a href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">Source</a>
+    <a href="https://kituwa.com/contact">Contact</a>
+    <a href="https://metrics.kituwa.com/projects">Projects</a>
+    <a href="/watchdog">Status</a>
+  </nav>
+</footer>
+
+<script src="/app.js" defer></script>
+</body>
+</html>
