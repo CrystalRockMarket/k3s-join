@@ -425,6 +425,8 @@ def send_mail(to: str, subject: str, text: str) -> bool:
     message["From"] = cfg.smtp_from
     message["To"] = to
     message["Subject"] = subject
+    if cfg.smtp_reply_to:
+        message["Reply-To"] = cfg.smtp_reply_to
     message["Auto-Submitted"] = "auto-generated"
     message.set_content(text)
     try:

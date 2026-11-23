@@ -44,6 +44,7 @@ class Config:
     smtp_user: str
     smtp_password: str
     smtp_from: str
+    smtp_reply_to: str
     smtp_tls: bool
     smtp_ssl: bool
     oidc_issuer: str
@@ -80,7 +81,8 @@ def load() -> Config:
         smtp_port=_int("EARN_SMTP_PORT", 465),
         smtp_user=os.environ.get("EARN_SMTP_USER", "").strip(),
         smtp_password=os.environ.get("EARN_SMTP_PASSWORD", ""),
-        smtp_from=os.environ.get("EARN_SMTP_FROM", "Kituwa Cluster <support@kituwa.com>").strip(),
+        smtp_from=os.environ.get("EARN_SMTP_FROM", "Kituwa Cluster <admin@kituwa.com>").strip(),
+        smtp_reply_to=os.environ.get("EARN_SMTP_REPLY_TO", "support@kituwa.com").strip(),
         smtp_tls=_bool("EARN_SMTP_TLS", True),
         smtp_ssl=_bool("EARN_SMTP_SSL", True),
         oidc_issuer=os.environ.get("EARN_OIDC_ISSUER", "https://auth.kituwa.com").rstrip("/"),

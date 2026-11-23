@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -69,7 +69,7 @@ banner() {
   fg256 27 '  ██║  ██╗██║   ██║   ╚██████╔╝╚███╔███╔╝██║  ██║'; printf '\n'
   fg256 21 '  ╚═╝  ╚═╝╚═╝   ╚═╝    ╚═════╝  ╚══╝╚══╝ ╚═╝  ╚═╝'; printf '\n'
   printf '\n'
-  printf '  %s%s\n' "${C_HEAD}C L U S T E R${C_RESET}" "${C_DIM}  ·  k3s worker, one command${C_RESET}"
+  printf '  %s%s\n' "${C_HEAD}KITUWA CLUSTER${C_RESET} ${C_OK}v${VERSION}${C_RESET}" "${C_DIM}  ·  k3s worker, one command${C_RESET}"
   [ "${DRY_RUN:-0}" = "1" ] && run_suffix="  ·  DRY RUN" || run_suffix=""
   printf '  %s\n' "${C_DIM}v${VERSION}  ·  ${host}  ·  $(uname -s)/${arch}${run_suffix}${C_RESET}"
   printf '  %s\n\n' "${C_DIM}───────────────────────────────────────────────${C_RESET}"

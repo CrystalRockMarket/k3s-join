@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"

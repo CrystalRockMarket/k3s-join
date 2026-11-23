@@ -47,6 +47,7 @@ class EarnTests(unittest.TestCase):
             smtp_user="",
             smtp_password="",
             smtp_from="Kituwa <support@kituwa.com>",
+            smtp_reply_to="support@kituwa.com",
             smtp_tls=True,
             smtp_ssl=True,
             oidc_issuer="https://auth.kituwa.com",
