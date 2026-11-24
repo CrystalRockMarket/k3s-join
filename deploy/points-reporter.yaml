@@ -1,0 +1,43 @@
+# Reports this node's CPU-seconds so a volunteer can earn points.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: points-reporter
+  namespace: kituwa-points
+spec:
+  selector: {matchLabels: {app: points-reporter}}
+  template:
+    metadata: {labels: {app: points-reporter}}
+    spec:
+      hostPID: true
+      dnsPolicy: Default
+      tolerations: [{operator: Exists}]
+      nodeSelector: {kituwa.io/volunteer: "true"}
+      containers:
+        - name: reporter
+          image: alpine:3.20
+          command: ["/bin/sh","-c"]
+          args:
+            - |
+              echo "reporter up on $NODE_NAME"
+              prev=$(awk '/^cpu /{t=0; for(i=2;i<=NF;i++) t+=$i; print t}' /host/proc/stat)
+              while true; do
+                sleep 60
+                now=$(awk '/^cpu /{t=0; for(i=2;i<=NF;i++) t+=$i; print t}' /host/proc/stat)
+                cpu=$(awk -v a="$now" -v b="$prev" 'BEGIN{printf "%.1f", (a-b)/100}')
+                prev=$now
+                body="{\"node\":\"$NODE_NAME\",\"cpu_seconds\":$cpu}"
+                if wget -q -O /dev/null --header='Content-Type: application/json' \
+                     --post-data="$body" https://k3s.kituwa.com/api/v1/points/report; then
+                  echo "reported $cpu CPU-seconds"
+                else
+                  echo "report failed"
+                fi
+              done
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 50m, memory: 48Mi}}
+          volumeMounts: [{name: proc, mountPath: /host/proc, readOnly: true}]
+          securityContext: {runAsNonRoot: true, runAsUser: 65534, allowPrivilegeEscalation: false}
+      volumes: [{name: proc, hostPath: {path: /proc}}]

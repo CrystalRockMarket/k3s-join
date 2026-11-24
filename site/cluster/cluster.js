@@ -17,10 +17,21 @@
   fetch("/points/cluster.json", { cache: "no-store" })
     .then(function (r) { if (!r.ok) { throw new Error(r.status); } return r.json(); })
     .then(function (d) {
-      document.getElementById("s-nodes").textContent = d.online + " / " + d.nodes.length;
+      var joinedList = d.joined || [];
+      document.getElementById("s-nodes").textContent = joinedList.length
+        ? joinedList.filter(function (x) { return x.ready; }).length + " / " + joinedList.length
+        : d.online + " / " + d.nodes.length;
       document.getElementById("s-total").textContent = fmt(d.total_points);
       document.getElementById("s-24h").textContent = fmt(d.points_24h);
       document.getElementById("s-backlog").textContent = fmt(d.backlog_points);
+      var known = {};
+      d.nodes.forEach(function (n) { known[n.node] = true; });
+      (d.joined || []).forEach(function (j) {
+        if (!known[j.node]) {
+          d.nodes.push({ node: j.node, role: j.volunteer ? "volunteer" : "dedicated",
+                         points: 0, last_seen: d.generated_at, pending: true });
+        }
+      });
       document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
         var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
         return "<tr>" +
@@ -53,10 +64,21 @@
       .then(function (d) {
         if (!d) { return; }
         nextIn = 15;
-        document.getElementById("s-nodes").textContent = d.active_nodes + " / " + d.nodes.length;
+        var joined = d.joined || [];
+        var online = joined.filter(function (x) { return x.ready; }).length;
+        document.getElementById("s-nodes").textContent = joined.length ? (online + " / " + joined.length)
+          : (d.active_nodes + " / " + d.nodes.length);
         document.getElementById("s-total").textContent = fmt(d.total_points);
         document.getElementById("s-24h").textContent = fmt(d.points_10m);
-        document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
+        var known = {};
+      d.nodes.forEach(function (n) { known[n.node] = true; });
+      (d.joined || []).forEach(function (j) {
+        if (!known[j.node]) {
+          d.nodes.push({ node: j.node, role: j.volunteer ? "volunteer" : "dedicated",
+                         points: 0, last_seen: d.generated_at, pending: true });
+        }
+      });
+      document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
           var fresh = !seen[n.node];
           seen[n.node] = true;
           var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
@@ -65,7 +87,8 @@
             "<strong>" + n.node + "</strong>" +
             '<span class="worker-points">' + fmt(n.points) + " points</span></td>" +
             "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
-            "<td>" + (fresh ? '<span class="pill">just joined</span>' : "online") + "</td>" +
+            "<td>" + (n.pending ? '<span class="pill">pending · no work yet</span>'
+                     : fresh ? '<span class="pill">just joined</span>' : "online") + "</td>" +
             "<td><strong>" + fmt(n.points) + "</strong></td><td>—</td>" +
             "<td>" + ago(n.last_seen) + "</td></tr>";
         }).join("");

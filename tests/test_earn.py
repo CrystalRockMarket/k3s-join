@@ -54,6 +54,9 @@ class EarnTests(unittest.TestCase):
             oidc_client_id="",
             oidc_client_secret="",
             oidc_redirect_uri="http://localhost/admin/oidc/callback",
+            oidc_consumer_client_id="",
+            oidc_consumer_client_secret="",
+            oidc_consumer_redirect_uri="http://localhost/account/oidc/callback",
             oidc_allowed_group="operators",
             oidc_allowed_sub="",
             points_snapshot=self.snapshot,
@@ -166,7 +169,7 @@ class EarnTests(unittest.TestCase):
         for path in ("/earn/", "/earn/rules/", "/earn/docs/", "/healthz"):
             self.assertEqual(self.client.get(path).status_code, 200, path)
         payload = self.client.get("/.well-known/auth-methods.json").get_json()
-        self.assertEqual(payload["order"], ["passkey", "password"])
+        self.assertEqual(payload["order"], ["passkey", "pocketid", "password"])
         self.assertTrue(payload["email_verification"])
 
     def test_signup_verify_login_and_csrf(self):

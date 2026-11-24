@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.3.0"
+VERSION="1.6.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -641,6 +641,91 @@ The state was uploaded for me to read — you do not need to copy anything."
     warn "the agent is running but not enabled at boot; fixing that now"
     systemctl enable k3s-agent >/dev/null 2>&1 || warn "could not enable it — run: sudo systemctl enable k3s-agent"
   fi
+}
+
+
+# ---------------------------------------------------------------- end screen ---
+# Stays open after a successful join. Shows the state, a countdown to when the
+# machine counts as idle, and lets the person start now or change the rule.
+KITUWA_CONF=/etc/kituwa/idle.conf
+idle_minutes() {
+  if [ -r "$KITUWA_CONF" ]; then
+    sed -n 's/^IDLE_MINUTES=//p' "$KITUWA_CONF" 2>/dev/null | head -1
+  fi
+}
+is_busy() {
+  # "Idle" = nobody logged in at a seat for the last N minutes and load below
+  # 60 % of the cores. The load check is instant; the login check is the timer.
+  local cores load limit seats
+  cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)
+  load=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo 0)
+  limit=$(awk -v c="$cores" 'BEGIN{printf "%.2f", c*0.6}')
+  seats=$(loginctl list-sessions --no-legend 2>/dev/null | awk '$3=="seat"{c++} END{print c+0}')
+  awk -v l="$load" -v t="$limit" 'BEGIN{exit !(l>=t)}' && return 0
+  [ "${seats:-0}" -gt 0 ] && return 0
+  return 1
+}
+
+end_screen() {
+  [ -t 0 ] || return 0
+  local mins need quiet stuck points node key
+  node="${NODE_NAME:-$(hostname -s)}"
+  mins="$(idle_minutes)"; mins="${mins:-5}"
+  need=$((mins * 60)); quiet=0; stuck=0
+
+  while :; do
+    # Same rule the cluster gate uses: below 60% of the cores counts as quiet.
+    cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)
+    load=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo 0)
+    limit=$(awk -v c="$cores" 'BEGIN{printf "%.2f", c*0.6}')
+    if awk -v l="$load" -v t="$limit" 'BEGIN{exit !(l>=t)}'; then
+      quiet=0; stuck=$((stuck + 1))
+    else
+      quiet=$((quiet + 2)); stuck=0
+    fi
+    [ -f /run/kituwa-force-active ] && quiet="$need"
+
+    # Points come from the published snapshot, so the panel shows the real total.
+    points="$(curl -sS -m 3 https://k3s.kituwa.com/api/v1/points/pull 2>/dev/null | head -c 0)"
+    points="$(curl -sS -m 3 https://k3s.kituwa.com/points/live.json 2>/dev/null \
+      | sed -n "s/.*\"node\":\"$node\",\"points\":\([0-9.]*\).*/\1/p" | head -1)"
+
+    printf '\033[H\033[2J'
+    banner
+    printf '  %sConnected.%s  %s is a worker in the Kituwa cluster.\n\n' "$C_OK" "$C_RESET" "$node"
+    printf '  points earned      %s\n' "${points:-0}"
+    printf '  load now           %s  (idle when below %s)\n' "$load" "$limit"
+    printf '  idle rule          quiet for %s minute(s)\n\n' "$mins"
+
+    if [ -f /run/kituwa-force-active ]; then
+      printf '  %sWORKING NOW%s  forced by you for 30 minutes.\n' "$C_OK" "$C_RESET"
+    elif [ "$quiet" -ge "$need" ]; then
+      printf '  %sAVAILABLE%s  the cluster may schedule work here now.\n' "$C_OK" "$C_RESET"
+    elif [ "$stuck" -ge 900 ]; then
+      printf '  %sNOT GOING IDLE%s  something has kept this machine busy for %s minutes.\n' \
+        "$C_ERR" "$C_RESET" "$((stuck / 60))"
+      printf '  no work will be scheduled until it is quiet for %s minutes. Close what is running.\n' "$mins"
+    else
+      printf '  %sBUSY%s  work starts after %s more quiet minute(s).\n' \
+        "$C_WARN" "$C_RESET" "$(( (need - quiet + 59) / 60 ))"
+    fi
+    printf '\n  [s] start now   [a] adjust idle rule   [q] quit\n  -> '
+
+    if IFS= read -r -t 2 -n 1 key; then
+      case "$key" in
+        s|S) touch /run/kituwa-force-active 2>/dev/null || true; quiet="$need" ;;
+        a|A) printf '\n  Minutes of quiet before idle [%s]: ' "$mins"
+             if IFS= read -r -t 20 ans && [ -n "${ans:-}" ]; then
+               case "$ans" in *[!0-9]*) : ;; *) mins="$ans"; need=$((mins * 60))
+                 install -d -m 0755 /etc/kituwa 2>/dev/null || true
+                 printf 'IDLE_MINUTES=%s\n' "$mins" > /etc/kituwa/idle.conf 2>/dev/null || true ;;
+               esac
+             fi ;;
+        q|Q) break ;;
+      esac
+    fi
+  done
+  printf '\n  Left it running. The agent is a service: it keeps working after this closes.\n\n'
 }
 
 # ------------------------------------------------------------ uninstall -----

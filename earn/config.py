@@ -51,6 +51,9 @@ class Config:
     oidc_client_id: str
     oidc_client_secret: str
     oidc_redirect_uri: str
+    oidc_consumer_client_id: str
+    oidc_consumer_client_secret: str
+    oidc_consumer_redirect_uri: str
     oidc_allowed_group: str
     oidc_allowed_sub: str
     points_snapshot: Path
@@ -90,6 +93,15 @@ def load() -> Config:
         oidc_client_secret=os.environ.get("EARN_OIDC_CLIENT_SECRET", ""),
         oidc_redirect_uri=os.environ.get(
             "EARN_OIDC_REDIRECT_URI", "https://k3s.kituwa.com/admin/oidc/callback"
+        ),
+        oidc_consumer_client_id=os.environ.get(
+            "EARN_OIDC_CONSUMER_CLIENT_ID", ""
+        ).strip(),
+        oidc_consumer_client_secret=os.environ.get(
+            "EARN_OIDC_CONSUMER_CLIENT_SECRET", ""
+        ),
+        oidc_consumer_redirect_uri=os.environ.get(
+            "EARN_OIDC_CONSUMER_REDIRECT_URI", "https://k3s.kituwa.com/account/oidc/callback"
         ),
         oidc_allowed_group=os.environ.get("EARN_OIDC_ALLOWED_GROUP", "operators").strip(),
         oidc_allowed_sub=os.environ.get("EARN_OIDC_ALLOWED_SUB", "").strip(),

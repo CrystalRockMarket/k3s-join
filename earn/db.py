@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT NOT NULL,
   display_lower TEXT NOT NULL UNIQUE,
   webauthn_handle BLOB,
+  pocketid_sub TEXT,
   status TEXT NOT NULL DEFAULT 'active',
   leaderboard INTEGER NOT NULL DEFAULT 1,
   node_limit INTEGER NOT NULL DEFAULT 1,
@@ -82,6 +83,7 @@ CREATE TABLE IF NOT EXISTS oidc_states (
   state_hash TEXT NOT NULL UNIQUE,
   verifier TEXT NOT NULL,
   nonce TEXT NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'operator',
   created_at TEXT NOT NULL,
   expires_at TEXT NOT NULL,
   used_at TEXT
@@ -216,8 +218,20 @@ def init(path: str | Path) -> None:
         # created_at on nodes is TEXT; keep the schema explicit rather than
         # relying on SQLite's flexible typing for the one typo-proof column.
         conn.execute("UPDATE nodes SET unlinked_at=NULL WHERE unlinked_at=''")
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(oidc_states)")}
+        if "mode" not in columns:
+            conn.execute(
+                "ALTER TABLE oidc_states ADD COLUMN mode TEXT NOT NULL DEFAULT 'operator'"
+            )
+        user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+        if "pocketid_sub" not in user_columns:
+            conn.execute("ALTER TABLE users ADD COLUMN pocketid_sub TEXT")
         conn.execute(
-            "INSERT OR IGNORE INTO settings(key, value) VALUES ('schema_version', '1')"
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_pocketid_sub"
+            " ON users(pocketid_sub) WHERE pocketid_sub IS NOT NULL"
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO settings(key, value) VALUES ('schema_version', '2')"
         )
     finally:
         conn.close()

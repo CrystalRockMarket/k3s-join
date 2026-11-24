@@ -547,14 +547,35 @@ def _get_json(url: str, token: str) -> dict:
         return json.loads(response.read())
 
 
-@bp.get("/admin/oidc/start")
-def oidc_start():
-    if security.limited("oidc:start:" + security.client_ip(), 20, 300):
+def _oidc_creds(mode: str) -> tuple[str, str, str]:
+    cfg = _cfg()
+    if mode == "consumer":
+        client_id = cfg.oidc_consumer_client_id
+        secret = cfg.oidc_consumer_client_secret
+        redirect_uri = cfg.oidc_consumer_redirect_uri
+    else:
+        client_id = cfg.oidc_client_id
+        secret = cfg.oidc_client_secret
+        redirect_uri = cfg.oidc_redirect_uri
+    if not client_id or not secret:
+        raise RuntimeError("OIDC is not configured for " + mode)
+    return client_id, secret, redirect_uri
+
+
+def _oidc_error(mode: str, message: str, status: int = 400):
+    if mode == "consumer":
+        return render_template("account/login.html", error=message, next="/earn/"), status
+    return render_template("admin/login.html", error=message), status
+
+
+def _oidc_start(mode: str):
+    if security.limited(f"oidc:start:{mode}:" + security.client_ip(), 20, 300):
         return "Too many attempts.", 429
     try:
         meta = _discovery()
+        client_id, _secret, redirect_uri = _oidc_creds(mode)
     except Exception:
-        return render_template("admin/login.html", error="Identity provider is unavailable."), 503
+        return _oidc_error(mode, "Identity provider is unavailable.", 503)
     verifier = secrets.token_urlsafe(48)
     challenge = base64.urlsafe_b64encode(
         hashlib.sha256(verifier.encode()).digest()
@@ -564,17 +585,17 @@ def oidc_start():
     conn = db.connect(_cfg().db_path)
     try:
         conn.execute(
-            "INSERT INTO oidc_states(id,state_hash,verifier,nonce,created_at,expires_at)"
-            " VALUES(?,?,?,?,?,?)",
-            (security.new_id(), security.digest(state), verifier, nonce,
+            "INSERT INTO oidc_states(id,state_hash,verifier,nonce,mode,created_at,expires_at)"
+            " VALUES(?,?,?,?,?,?,?)",
+            (security.new_id(), security.digest(state), verifier, nonce, mode,
              db.now(), security.later_iso(600)),
         )
     finally:
         conn.close()
     query = urllib.parse.urlencode({
         "response_type": "code",
-        "client_id": _cfg().oidc_client_id,
-        "redirect_uri": _cfg().oidc_redirect_uri,
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
         "scope": "openid profile email groups",
         "state": state,
         "nonce": nonce,
@@ -584,12 +605,23 @@ def oidc_start():
     return redirect(meta["authorization_endpoint"] + "?" + query)
 
 
+@bp.get("/admin/oidc/start")
+def oidc_start():
+    return _oidc_start("operator")
+
+
+@bp.get("/account/oidc/start")
+def consumer_oidc_start():
+    return _oidc_start("consumer")
+
+
 @bp.get("/admin/oidc/callback")
+@bp.get("/account/oidc/callback")
 def oidc_callback():
     state = request.args.get("state", "")
     code = request.args.get("code", "")
     if not state or not code or len(state) > 200 or len(code) > 2000:
-        return render_template("admin/login.html", error="The sign-in response was incomplete."), 400
+        return _oidc_error("consumer", "The sign-in response was incomplete.")
     conn = db.connect(_cfg().db_path)
     try:
         conn.execute("BEGIN IMMEDIATE")
@@ -599,19 +631,21 @@ def oidc_callback():
         ).fetchone()
         if row is None:
             conn.execute("COMMIT")
-            return render_template("admin/login.html", error="That sign-in expired. Try again."), 400
+            return _oidc_error("consumer", "That sign-in expired. Try again.")
         conn.execute("UPDATE oidc_states SET used_at=? WHERE id=?", (db.now(), row["id"]))
+        mode = str(row["mode"] or "operator")
         conn.execute("COMMIT")
     finally:
         conn.close()
     try:
+        client_id, client_secret, redirect_uri = _oidc_creds(mode)
         meta = _discovery()
         tokens = _post_form(meta["token_endpoint"], {
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": _cfg().oidc_redirect_uri,
-            "client_id": _cfg().oidc_client_id,
-            "client_secret": _cfg().oidc_client_secret,
+            "redirect_uri": redirect_uri,
+            "client_id": client_id,
+            "client_secret": client_secret,
             "code_verifier": row["verifier"],
         })
         access = tokens.get("access_token", "")
@@ -619,27 +653,77 @@ def oidc_callback():
             raise RuntimeError("no access token")
         who = _get_json(meta["userinfo_endpoint"], access)
     except Exception:
-        current_app.logger.warning("operator OIDC exchange failed")
-        return render_template("admin/login.html", error="The identity provider rejected the sign-in."), 401
+        current_app.logger.warning("OIDC exchange failed for %s", mode)
+        return _oidc_error(mode, "The identity provider rejected the sign-in.", 401)
 
     subject = str(who.get("sub", ""))[:128]
     email = str(who.get("email", "")).strip().lower()[:254]
     groups = who.get("groups") or who.get("group") or []
     if isinstance(groups, str):
         groups = [groups]
-    allowed = _cfg().oidc_allowed_group
-    is_allowed = subject == _cfg().oidc_allowed_sub or allowed in [str(x) for x in groups]
-    if not subject or not is_allowed:
-        return render_template("admin/login.html",
-                               error="That identity is not an operator on this site."), 403
+    groups = [str(item) for item in groups]
 
+    if mode == "operator":
+        allowed = _cfg().oidc_allowed_group
+        is_allowed = subject == _cfg().oidc_allowed_sub or allowed in groups
+        if not subject or not is_allowed:
+            return _oidc_error("operator", "That identity is not an operator on this site.", 403)
+        conn = db.connect(_cfg().db_path)
+        try:
+            user = conn.execute("SELECT * FROM users WHERE email_lower=?", (email,)).fetchone() if email else None
+            if user is None:
+                uid = security.new_id()
+                display = (str(who.get("name") or who.get("preferred_username") or "Operator")
+                           .strip()[:32] or "Operator")
+                base = display
+                n = 1
+                while conn.execute("SELECT 1 FROM users WHERE display_lower=?", (display.lower(),)).fetchone():
+                    n += 1
+                    display = (base[:28] + " " + str(n))[:32]
+                conn.execute(
+                    "INSERT INTO users(id,email,email_lower,email_verified_at,display_name,"
+                    "display_lower,is_operator,created_at) VALUES(?,?,?,?,?,?,1,?)",
+                    (uid, email or f"{subject}@operator.invalid", email or f"{subject}@operator.invalid",
+                     db.now(), display, display.lower(), db.now()),
+                )
+                user_id = uid
+            else:
+                conn.execute("UPDATE users SET is_operator=1 WHERE id=?", (user["id"],))
+                user_id = user["id"]
+            conn.execute("INSERT INTO audit(actor,action,target,detail,created_at) VALUES(?,?,?,?,?)",
+                         (subject, "operator.login", user_id, email[:120], db.now()))
+        finally:
+            conn.close()
+        security.destroy_session()
+        token = security.create_session(user_id, "operator")
+        response = redirect("/admin/")
+        return security.set_session_cookie(response, token)
+
+    # Consumer Pocket ID: the client is scoped to the members group. Do not
+    # merge into an existing password account by email alone (protocol 01).
+    if not subject or not email:
+        return _oidc_error("consumer", "The identity provider did not return a verified email.", 401)
+    if who.get("email_verified") is False:
+        return _oidc_error("consumer", "That email is not verified with Kituwa ID.", 401)
     conn = db.connect(_cfg().db_path)
     try:
-        user = conn.execute("SELECT * FROM users WHERE email_lower=?", (email,)).fetchone() if email else None
+        user = conn.execute(
+            "SELECT * FROM users WHERE pocketid_sub=?", (subject,)
+        ).fetchone()
         if user is None:
+            existing = conn.execute(
+                "SELECT id FROM users WHERE email_lower=?", (email,)
+            ).fetchone()
+            if existing is not None:
+                return _oidc_error(
+                    "consumer",
+                    "An account with this email already exists. Sign in with your password "
+                    "and use a passkey here; Kituwa ID linking is not enabled yet.",
+                    409,
+                )
             uid = security.new_id()
-            display = (str(who.get("name") or who.get("preferred_username") or "Operator")
-                       .strip()[:32] or "Operator")
+            display = (str(who.get("name") or who.get("preferred_username") or email.split("@")[0])
+                       .strip()[:32] or "Member")
             base = display
             n = 1
             while conn.execute("SELECT 1 FROM users WHERE display_lower=?", (display.lower(),)).fetchone():
@@ -647,19 +731,19 @@ def oidc_callback():
                 display = (base[:28] + " " + str(n))[:32]
             conn.execute(
                 "INSERT INTO users(id,email,email_lower,email_verified_at,display_name,"
-                "display_lower,is_operator,created_at) VALUES(?,?,?,?,?,?,1,?)",
-                (uid, email or f"{subject}@operator.invalid", email or f"{subject}@operator.invalid",
-                 db.now(), display, display.lower(), db.now()),
+                "display_lower,pocketid_sub,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (uid, email, email, db.now(), display, display.lower(), subject, db.now()),
             )
             user_id = uid
         else:
-            conn.execute("UPDATE users SET is_operator=1 WHERE id=?", (user["id"],))
+            if user["status"] != "active":
+                return _oidc_error("consumer", "That account is not available.", 403)
             user_id = user["id"]
         conn.execute("INSERT INTO audit(actor,action,target,detail,created_at) VALUES(?,?,?,?,?)",
-                     (subject, "operator.login", user_id, email[:120], db.now()))
+                     (subject, "member.login", user_id, "pocketid", db.now()))
     finally:
         conn.close()
     security.destroy_session()
-    token = security.create_session(user_id, "operator")
-    response = redirect("/admin/")
+    token = security.create_session(user_id, "consumer")
+    response = redirect("/earn/")
     return security.set_session_cookie(response, token)

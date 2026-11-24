@@ -213,8 +213,8 @@ def docs():
 def auth_methods():
     payload = {
         "version": 1,
-        "methods": ["passkey", "password"],
-        "order": ["passkey", "password"],
+        "methods": ["passkey", "pocketid", "password"],
+        "order": ["passkey", "pocketid", "password"],
         "email_verification": True,
         "endpoints": {
             "login": "/account/login/",
@@ -222,6 +222,7 @@ def auth_methods():
             "passkey": "/account/passkey/login/begin",
             "verify": "/account/verify/",
             "reset": "/account/forgot/",
+            "pocketid": "/account/oidc/start",
             "operator": "/admin/login",
         },
     }
