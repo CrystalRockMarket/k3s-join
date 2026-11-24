@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.4.0"
+VERSION="1.7.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -667,44 +667,67 @@ is_busy() {
 }
 
 end_screen() {
-  [ -t 0 ] || return 0
-  local mins wait=0 mark=0 key
+  # stdin is the pipe from `curl`, so read keys from the terminal itself.
+  { exec 3</dev/tty; } 2>/dev/null || return 0
+  [ -t 1 ] || return 0
+  local mins need quiet stuck points node key
+  node="${NODE_NAME:-$(hostname -s)}"
   mins="$(idle_minutes)"; mins="${mins:-5}"
+  need=$((mins * 60)); quiet=0; stuck=0
+
   while :; do
+    # Same rule the cluster gate uses: below 60% of the cores counts as quiet.
+    cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)
+    load=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo 0)
+    limit=$(awk -v c="$cores" 'BEGIN{printf "%.2f", c*0.6}')
+    if awk -v l="$load" -v t="$limit" 'BEGIN{exit !(l>=t)}'; then
+      quiet=0; stuck=$((stuck + 1))
+    else
+      quiet=$((quiet + 2)); stuck=0
+    fi
+    [ -f /run/kituwa-force-active ] && quiet="$need"
+
+    # Points come from the published snapshot, so the panel shows the real total.
+    points="$(curl -sS -m 3 https://k3s.kituwa.com/api/v1/points/pull 2>/dev/null | head -c 0)"
+    points="$(curl -sS -m 3 https://k3s.kituwa.com/points/live.json 2>/dev/null \
+      | sed -n "s/.*\"node\":\"$node\",\"points\":\([0-9.]*\).*/\1/p" | head -1)"
+
     printf '\033[H\033[2J'
     banner
-    printf '  %sConnected.%s  This PC is a worker in the Kituwa cluster.\n\n' "$C_OK" "$C_RESET"
+    printf '  %sConnected.%s  %s is a worker in the Kituwa cluster.\n\n' "$C_OK" "$C_RESET" "$node"
+    printf '  points earned      %s\n' "${points:-0}"
+    printf '  load now           %s  (idle when below %s)\n' "$load" "$limit"
+    printf '  idle rule          quiet for %s minute(s)\n\n' "$mins"
+
     if [ -f /run/kituwa-force-active ]; then
-      printf '  %sWORKING NOW%s  forced for 30 minutes by you.\n' "$C_OK" "$C_RESET"
-    elif is_busy; then
-      printf '  %sBUSY%s  the machine is in use — work starts when it is idle.\n' "$C_WARN" "$C_RESET"
-      printf '  idle rule: quiet for %s minute(s), load under 60%% of the cores\n' "$mins"
-      printf '  waiting %ss\n' "$wait"
+      printf '  %sWORKING NOW%s  forced by you for 30 minutes.\n' "$C_OK" "$C_RESET"
+    elif [ "$quiet" -ge "$need" ]; then
+      printf '  %sAVAILABLE%s  the cluster may schedule work here now.\n' "$C_OK" "$C_RESET"
+    elif [ "$stuck" -ge 900 ]; then
+      printf '  %sNOT GOING IDLE%s  something has kept this machine busy for %s minutes.\n' \
+        "$C_ERR" "$C_RESET" "$((stuck / 60))"
+      printf '  no work will be scheduled until it is quiet for %s minutes. Close what is running.\n' "$mins"
     else
-      printf '  %sIDLE%s  available — the cluster may schedule work here now.\n' "$C_OK" "$C_RESET"
-      printf '  idle rule: quiet for %s minute(s), load under 60%% of the cores\n' "$mins"
+      printf '  %sBUSY%s  work starts after %s more quiet minute(s).\n' \
+        "$C_WARN" "$C_RESET" "$(( (need - quiet + 59) / 60 ))"
     fi
-    printf '\n  [s] start now   [a] adjust idle rule   [q] quit\n' >&2
-    printf '  -> '
-    if IFS= read -r -t 1 -n 1 key; then
+    printf '\n  [s] start now   [a] adjust idle rule   [q] quit\n  -> '
+
+    if IFS= read -r -t 2 -n 1 -u 3 key; then
       case "$key" in
-        s|S) install -d -m 0755 /run 2>/dev/null || true
-             touch /run/kituwa-force-active 2>/dev/null || true
-             say "  Forced: this node will be treated as available for 30 minutes." ;;
-        a|A) printf '  Minutes of quiet before this PC counts as idle [%s]: ' "$mins"
-             if IFS= read -r -t 15 ans && [ -n "${ans:-}" ]; then
-               case "$ans" in *[!0-9]*) say "  numbers only; kept $mins" ;;
-                 *) mins="$ans"; install -d -m 0755 /etc/kituwa 2>/dev/null || true
-                    printf 'IDLE_MINUTES=%s\n' "$mins" > "$KITUWA_CONF" 2>/dev/null || true
-                    say "  Idle rule updated: quiet for $mins minute(s)." ;;
+        s|S) touch /run/kituwa-force-active 2>/dev/null || true; quiet="$need" ;;
+        a|A) printf '\n  Minutes of quiet before idle [%s]: ' "$mins"
+             if IFS= read -r -t 20 -u 3 ans && [ -n "${ans:-}" ]; then
+               case "$ans" in *[!0-9]*) : ;; *) mins="$ans"; need=$((mins * 60))
+                 install -d -m 0755 /etc/kituwa 2>/dev/null || true
+                 printf 'IDLE_MINUTES=%s\n' "$mins" > /etc/kituwa/idle.conf 2>/dev/null || true ;;
                esac
              fi ;;
         q|Q) break ;;
       esac
     fi
-    wait=$((wait + 1))
-    mark=$((mark + 1))
   done
+  exec 3<&-
   printf '\n  Left it running. The agent is a service: it keeps working after this closes.\n\n'
 }
 
@@ -749,9 +772,7 @@ summary() {
   say "   server    ${SERVER%/}"
   say "   version   $K3S_VERSION"
   say ""
-  say " ${C_OK}${C_HEAD}Connected.${C_RESET} It runs as a service: it starts on boot and keeps"
-  say " running after you close this window. Turning the PC off is fine."
-  say ""
+
   say ""
   say " Leave whenever you want, no questions asked:"
   say "   curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --uninstall --remove-tailscale"

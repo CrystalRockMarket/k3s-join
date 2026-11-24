@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.6.0"
+VERSION="1.7.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -667,7 +667,9 @@ is_busy() {
 }
 
 end_screen() {
-  [ -t 0 ] || return 0
+  # stdin is the pipe from `curl`, so read keys from the terminal itself.
+  { exec 3</dev/tty; } 2>/dev/null || return 0
+  [ -t 1 ] || return 0
   local mins need quiet stuck points node key
   node="${NODE_NAME:-$(hostname -s)}"
   mins="$(idle_minutes)"; mins="${mins:-5}"
@@ -711,11 +713,11 @@ end_screen() {
     fi
     printf '\n  [s] start now   [a] adjust idle rule   [q] quit\n  -> '
 
-    if IFS= read -r -t 2 -n 1 key; then
+    if IFS= read -r -t 2 -n 1 -u 3 key; then
       case "$key" in
         s|S) touch /run/kituwa-force-active 2>/dev/null || true; quiet="$need" ;;
         a|A) printf '\n  Minutes of quiet before idle [%s]: ' "$mins"
-             if IFS= read -r -t 20 ans && [ -n "${ans:-}" ]; then
+             if IFS= read -r -t 20 -u 3 ans && [ -n "${ans:-}" ]; then
                case "$ans" in *[!0-9]*) : ;; *) mins="$ans"; need=$((mins * 60))
                  install -d -m 0755 /etc/kituwa 2>/dev/null || true
                  printf 'IDLE_MINUTES=%s\n' "$mins" > /etc/kituwa/idle.conf 2>/dev/null || true ;;
@@ -725,6 +727,7 @@ end_screen() {
       esac
     fi
   done
+  exec 3<&-
   printf '\n  Left it running. The agent is a service: it keeps working after this closes.\n\n'
 }
 
@@ -769,9 +772,7 @@ summary() {
   say "   server    ${SERVER%/}"
   say "   version   $K3S_VERSION"
   say ""
-  say " ${C_OK}${C_HEAD}Connected.${C_RESET} It runs as a service: it starts on boot and keeps"
-  say " running after you close this window. Turning the PC off is fine."
-  say ""
+
   say ""
   say " Leave whenever you want, no questions asked:"
   say "   curl -fsSL https://k3s.kituwa.com/install.sh | sudo bash -s -- --uninstall --remove-tailscale"

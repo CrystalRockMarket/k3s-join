@@ -233,6 +233,19 @@ def auth_methods():
     )
 
 
+@bp.get("/api/v1/earn")
+@bp.get("/api/v1/earn/")
+def api_index():
+    return jsonify({
+        "ok": True,
+        "service": "Kituwa Cluster Earn",
+        "summary": "/api/v1/earn/summary",
+        "premium_verify": "/api/v1/earn/premium/verify",
+        "auth_methods": "/.well-known/auth-methods.json",
+        "docs": "/earn/docs/",
+    })
+
+
 @bp.get("/api/v1/earn/summary")
 def api_summary():
     conn = _conn()

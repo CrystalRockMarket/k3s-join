@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="1.4.0"
+VERSION="1.7.0"
 echo "  Kituwa Cluster installer v$VERSION"
 echo
 echo "  Kituwa Cluster — joining this Mac as a worker."
@@ -12,7 +12,7 @@ if [ -z "$CODE" ]; then
   read -r -p "Press return to close. " _
   exit 1
 fi
-curl -fsSL https://k3s.kituwa.com/install-macos-1.4.0.sh | bash -s -- --code "$CODE"
+curl -fsSL https://k3s.kituwa.com/install-macos-1.7.0.sh | bash -s -- --code "$CODE"
 echo
 echo "Finished. You can close this window; the worker keeps running."
 read -r -p "Press return to close. " _
