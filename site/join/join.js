@@ -54,6 +54,10 @@
   }
 
   function payload() {
+    var body = form.body.value.trim();
+    if (form.storage && form.storage.checked) {
+      body += "\n\nStorage pilot: yes (50-500 GB).";
+    }
     return {
       name: form.name.value.trim(),
       email: form.email.value.trim(),
@@ -61,7 +65,7 @@
       tier: form.tier.value,
       machine: form.machine.value.trim(),
       specs: form.specs.value.trim(),
-      body: form.body.value.trim(),
+      body: body,
       node_name: form.machine.value.trim(),
       _hp: form._hp.value,
       reference: form.dataset.reference

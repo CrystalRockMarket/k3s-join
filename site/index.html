@@ -240,6 +240,39 @@
       them can read your documents, see your browser, or touch your network.</p>
   </section>
 
+  <section class="band" id="storage" aria-labelledby="storage-h">
+    <h2 id="storage-h">Share your disk (pilot)</h2>
+    <p class="prose">A worker's spare disk can hold cluster data as well as run
+      containers. We are building a small replicated pool for low-priority data —
+      build caches, render intermediates, logs and backups — with a strict rule:
+      durable data is only accepted when three healthy storage machines hold a
+      copy. One copy is scratch and can disappear.</p>
+    <div class="grid three">
+      <article class="card">
+        <p class="card-label">Encrypted</p>
+        <h3>Opaque to the machine</h3>
+        <p>Storage machines hold encrypted blobs in a dedicated folder. They never
+          see your documents, your browser or the contents of the data.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Redundant</p>
+        <h3>Three copies or no deal</h3>
+        <p>Durable writes require three healthy replicas. If one machine leaves,
+          the controller repairs the missing copy before accepting more.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Reversible</p>
+        <h3>Pause it whenever</h3>
+        <p>A quota you choose, a folder you can remove, and an off switch. Storage
+          points are additional to compute points; the pilot rate is published
+          when the pool opens.</p>
+      </article>
+    </div>
+    <p class="note">This is a pilot, not a live drive yet: the cluster needs three
+      healthy storage machines before durable data is accepted. Register interest
+      in the <a href="/join/">join form</a> and mention storage.</p>
+  </section>
+
   <section class="band" id="tiers" aria-labelledby="tiers-h">
     <h2 id="tiers-h">Contributor tiers</h2>
     <p class="prose">

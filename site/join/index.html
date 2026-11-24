@@ -74,6 +74,11 @@
       <code>sudo systemctl stop k3s-agent &amp;&amp; sudo systemctl disable k3s-agent</code>.</p>
   </section>
 
+    <p class="note">Want to share spare disk as well as CPU? Tick the storage
+      pilot box in the form below. It reserves 50–500 GB in a dedicated folder,
+      encrypted, and durable data is only accepted when three machines hold a
+      copy. You can pause or remove it at any time; no storage is taken until the
+      pilot opens.</p>
   <section class="band" aria-labelledby="how">
     <h2 id="how">What happens when you run it</h2>
     <ol class="steps">
@@ -153,6 +158,12 @@
             <textarea id="body" name="body" rows="5" required minlength="10" maxlength="4000"
               placeholder="It sits idle most of the day. Any workload is fine, batch jobs especially."></textarea>
             <p class="hint">10 characters minimum. Plain text, no links needed.</p>
+          </div>
+
+          <div class="field">
+            <label><input id="storage" name="storage" type="checkbox"> Share disk in the storage pilot</label>
+            <p class="hint">50–500 GB in a dedicated, encrypted folder. Durable data
+              needs three healthy copies. You can pause it later.</p>
           </div>
 
           <div class="field hp" aria-hidden="true">
