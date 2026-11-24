@@ -48,25 +48,76 @@
   </section>
 
   <section class="band flush" id="install">
-    <div class="os-grid">
-      <article class="os-card">
-        <h3>Linux</h3>
-        <p class="note">Open <strong>Terminal</strong> (usually <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>), paste the line, press Enter.</p>
+    <div class="os-tabs" data-os-tabs data-os-pick="auto">
+      <div class="os-tablist" role="tablist" aria-label="Choose your operating system">
+        <button class="os-tab" type="button" role="tab" id="tab-join-linux" data-os="linux" aria-controls="panel-join-linux" aria-selected="true">Linux</button>
+        <button class="os-tab" type="button" role="tab" id="tab-join-windows" data-os="windows" aria-controls="panel-join-windows" aria-selected="false">Windows</button>
+        <button class="os-tab" type="button" role="tab" id="tab-join-macos" data-os="macos" aria-controls="panel-join-macos" aria-selected="false">Mac</button>
+      </div>
+
+      <div class="os-tabpanel" role="tabpanel" id="panel-join-linux" aria-labelledby="tab-join-linux" tabindex="0">
+        <p class="note">Linux with systemd. The command downloads a small script and runs it — you do not need to install anything first.</p>
+        <ol class="howto-steps">
+          <li><strong>Open a terminal.</strong> Press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>, or open your apps menu and type <em>Terminal</em>. A black window with a prompt appears.</li>
+          <li><strong>Paste the command.</strong> Copy it with the button below, then in the terminal press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> (a plain <kbd>Ctrl</kbd>+<kbd>V</kbd> usually does not paste into a terminal) or right-click → <em>Paste</em>.</li>
+          <li><strong>Press Enter</strong> and wait. It asks for your login password — type it and press Enter. <em>Nothing appears on screen while you type your password</em>; that is normal, not a freeze.</li>
+          <li><strong>Leave the window open.</strong> A live panel shows points and load. Closing it does not stop the worker; it runs as a service and starts on boot.</li>
+        </ol>
         <pre><code id="cmd-join-linux">curl -fsSL https://k3s.kituwa.com/linux -o kituwa-join.sh &amp;&amp; bash kituwa-join.sh</code></pre>
-        <button class="btn small" type="button" data-copy="cmd-join-linux">Copy the command</button>
-      </article>
-      <article class="os-card">
-        <h3>macOS</h3>
-        <p class="note">Open <strong>Terminal</strong> (⌘+Space, type “Terminal”), paste the line, press Enter.</p>
-        <pre><code id="cmd-join-mac">curl -fsSL https://k3s.kituwa.com/mac -o kituwa-join.command &amp;&amp; bash kituwa-join.command</code></pre>
-        <button class="btn small" type="button" data-copy="cmd-join-mac">Copy the command</button>
-      </article>
-      <article class="os-card">
-        <h3>Windows</h3>
-        <p class="note">Open <strong>PowerShell as administrator</strong> (right-click Start), paste, press Enter.</p>
+        <button class="btn primary" type="button" data-copy="cmd-join-linux" data-os="linux">Copy the command</button>
+        <details class="howto-more">
+          <summary>What <code>sudo</code>, <code>chmod</code>, <code>./</code> and “command not found” mean</summary>
+          <p><code>sudo</code> means “run this as the administrator”. It is why you are asked for your password. You do not type <code>sudo</code> yourself here — the command above already includes it where it is needed.</p>
+          <p><code>bash kituwa-join.sh</code> means “run the file <code>kituwa-join.sh</code> with the bash program”, so the file does not have to be marked executable. If you downloaded the file yourself instead (for example into Downloads) and want to run it directly:</p>
+          <pre><code>cd ~/Downloads
+chmod +x kituwa-join.sh
+./kituwa-join.sh</code></pre>
+          <p><code>chmod +x</code> marks the file as <em>executable</em> — Linux will not run a downloaded file until it is. <code>./</code> means “the file in this folder”: without it the shell searches the system folders for a program called <code>kituwa-join.sh</code> and reports <code>command not found</code>. So <code>./kituwa-join.sh</code> works, <code>kituwa-join.sh</code> alone usually does not.</p>
+          <p><code>Permission denied</code> means step <code>chmod +x</code> was skipped. <code>curl: command not found</code> means the tool <code>curl</code> is missing — install it with <code>sudo apt install curl</code> (Debian/Ubuntu) or <code>sudo dnf install curl</code> (Fedora).</p>
+        </details>
+      </div>
+
+      <div class="os-tabpanel" role="tabpanel" id="panel-join-windows" aria-labelledby="tab-join-windows" tabindex="0" hidden>
+        <p class="note">Windows 10 or 11. The command downloads a small script and runs it; the script sets up WSL2 with systemd and joins the same way as Linux.</p>
+        <ol class="howto-steps">
+          <li><strong>Open PowerShell as administrator.</strong> Click Start, type <em>PowerShell</em>, right-click <em>Windows PowerShell</em> and choose <em>Run as administrator</em>, then <em>Yes</em>. The window title must start with “Administrator”.</li>
+          <li><strong>Paste the command.</strong> Copy it with the button below, then press <kbd>Ctrl</kbd>+<kbd>V</kbd> in the window, or right-click inside it.</li>
+          <li><strong>Press Enter</strong> and wait. Windows may ask to enable features and restart — save your work first, then run the command again after the restart.</li>
+          <li><strong>Leave the window open.</strong> The panel shows progress and points. Closing it does not stop the worker.</li>
+        </ol>
         <pre><code id="cmd-join-win">irm https://k3s.kituwa.com/windows -OutFile "$env:TEMP\kituwa-join.cmd"; &amp; "$env:TEMP\kituwa-join.cmd"</code></pre>
-        <button class="btn small" type="button" data-copy="cmd-join-win">Copy the command</button>
-      </article>
+        <button class="btn primary" type="button" data-copy="cmd-join-win" data-os="windows">Copy the command</button>
+        <details class="howto-more">
+          <summary>What <code>irm</code>, <code>&amp;</code> and the PowerShell warnings mean</summary>
+          <p><code>irm</code> is short for <code>Invoke-RestMethod</code>: it downloads a file. <code>-OutFile "$env:TEMP\kituwa-join.cmd"</code> saves it in your temporary folder instead of printing it.</p>
+          <p><code>&amp;</code> is PowerShell’s “run this” operator — it tells Windows the text is a file path to execute, not a program name. Without it, a path is just printed as text. <code>&amp; "C:\...\kituwa-join.cmd"</code> runs that file.</p>
+          <p><strong>“Running scripts is disabled on this system”</strong>: allow them for this one window only, then paste the command again:</p>
+          <pre><code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></pre>
+          <p><strong>Rather double-click a file?</strong> Download <a href="/windows">kituwa-join-1.9.0.cmd</a>, double-click it, and if Windows shows “Windows protected your PC”, choose <em>More info</em> → <em>Run anyway</em>. That is SmartScreen warning about a downloaded file, not an error.</p>
+        </details>
+      </div>
+
+      <div class="os-tabpanel" role="tabpanel" id="panel-join-macos" aria-labelledby="tab-join-macos" tabindex="0" hidden>
+        <p class="note">macOS 13 or newer, Intel or Apple silicon. k3s is Linux-only, so the script installs a small Linux virtual machine (Lima) on your Mac and joins that. Your Mac itself is not modified beyond that.</p>
+        <ol class="howto-steps">
+          <li><strong>Open Terminal.</strong> Press <kbd>⌘</kbd>+<kbd>Space</kbd>, type <em>Terminal</em>, press Enter.</li>
+          <li><strong>Paste the command.</strong> Copy it with the button below, then press <kbd>⌘</kbd>+<kbd>V</kbd> in the Terminal window.</li>
+          <li><strong>Press Enter</strong> and wait. It asks for your Mac password — type it and press Enter. <em>Nothing appears while you type</em>; that is normal. It may also ask you to install developer command-line tools: say yes.</li>
+          <li><strong>Leave the window open.</strong> The panel shows progress and points. Closing it does not stop the worker.</li>
+        </ol>
+        <pre><code id="cmd-join-mac">curl -fsSL https://k3s.kituwa.com/mac -o kituwa-join.command &amp;&amp; bash kituwa-join.command</code></pre>
+        <button class="btn primary" type="button" data-copy="cmd-join-mac" data-os="macos">Copy the command</button>
+        <details class="howto-more">
+          <summary>What <code>chmod +x</code>, <code>./</code> and the macOS warnings mean</summary>
+          <p><code>bash kituwa-join.command</code> means “run this file with bash”, so you never need <code>chmod</code> or <code>./</code> with the command above. If you downloaded the <code>.command</code> file yourself, you can also double-click it in Finder — that is what the <code>.command</code> ending is for.</p>
+          <p>To run a downloaded file from Terminal instead, you first mark it executable and then run it by path:</p>
+          <pre><code>cd ~/Downloads
+chmod +x kituwa-join.command
+./kituwa-join.command</code></pre>
+          <p><code>chmod +x</code> marks the file as <em>executable</em>; <code>./</code> means “the file in this folder”. Without <code>./</code> the shell looks for a system program of that name and says <code>command not found</code>; without <code>chmod +x</code> it says <code>permission denied</code>.</p>
+          <p><strong>“cannot be opened because the developer cannot be verified”</strong> (Gatekeeper): right-click the file → <em>Open</em> → <em>Open</em>, or use the Terminal commands above. <strong>“command not found: curl”</strong> means the command-line tools are missing; the command above installs them for you when it asks.</p>
+        </details>
+      </div>
     </div>
     <p class="note">The panel stays open after install and shows points, load and the
       time until the machine is considered idle. Closing the panel never stops the

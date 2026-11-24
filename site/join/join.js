@@ -103,8 +103,25 @@
   function showCode(data) {
     form.hidden = true;
     var mine = detectOS();
-    var order = [mine].concat(["linux", "macos", "windows"].filter(function (p) { return p !== mine; }));
-    var label = { linux: "Linux", macos: "macOS", windows: "Windows (PowerShell, as admin)" };
+    var order = ["linux", "windows", "macos"];
+    var label = { linux: "Linux", windows: "Windows", macos: "Mac" };
+    var short = {
+      linux: "Open a terminal (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>), paste with " +
+             "<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>, press Enter. Type your password " +
+             "if asked — nothing shows while you type. <code>chmod +x</code> is not needed: " +
+             "the command runs the file with <code>bash</code>. Closing the window never " +
+             "stops the worker.",
+      windows: "Click Start, type <em>PowerShell</em>, right-click <em>Windows PowerShell</em> " +
+             "→ <em>Run as administrator</em>. Paste with <kbd>Ctrl</kbd>+<kbd>V</kbd> or a " +
+             "right-click, press Enter. If Windows says “running scripts is disabled”, run " +
+             "<code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code> first. " +
+             "It may ask to restart before the worker starts.",
+      macos: "Open <em>Terminal</em> (<kbd>⌘</kbd>+<kbd>Space</kbd>, type Terminal), paste with " +
+             "<kbd>⌘</kbd>+<kbd>V</kbd>, press Enter. It asks for your Mac password and builds a " +
+             "small Linux VM with Lima — expected, k3s is Linux-only. <code>chmod +x</code> is " +
+             "only needed if you saved the file yourself; <code>bash file.command</code> or a " +
+             "double-click also works."
+    };
 
     var panel = document.createElement("div");
     panel.className = "code-panel";
@@ -112,17 +129,30 @@
       '<p class="code-title">Your install command for <strong>' + esc(data.node) + "</strong></p>" +
       '<p class="note">One line. The join code is inside it — you paste the command, not two things. ' +
       "It expires in " + Math.round((data.expires_in || 3600) / 60) +
-      " minutes and the machine can be revoked at any time.</p>" +
-      order.map(function (platform, i) {
-        return "<details class=\"os-line\"" + (i === 0 ? " open" : "") + ">" +
-          "<summary>" + (i === 0 ? "Detected: " : "") + label[platform] + "</summary>" +
-          "<pre><code>" + esc(commandFor(platform, data.code)) + "</code></pre>" +
-          '<button type="button" class="btn ' + (i === 0 ? "primary" : "") +
-          ' small" data-copy="' + platform + '">Copy the command</button>' +
-          '<p class="node-alt"><span>Node 18+ installed?</span> A nicer installer, same job:<br>' +
-          "<code>" + esc(nodeCommand(data.code)) + "</code></p>" +
-          "</details>";
-      }).join("") +
+      " minutes and the machine can be revoked at any time. Pick your system: the tab your " +
+      "browser matches is already open.</p>" +
+      '<div class="os-tabs" data-os-tabs data-os-pick="auto">' +
+        '<div class="os-tablist" role="tablist" aria-label="Choose your operating system">' +
+          order.map(function (platform) {
+            return '<button class="os-tab" type="button" role="tab" id="tab-code-' + platform +
+              '" data-os="' + platform + '" aria-controls="panel-code-' + platform +
+              '" aria-selected="' + (platform === mine ? "true" : "false") + '">' +
+              label[platform] + "</button>";
+          }).join("") +
+        "</div>" +
+        order.map(function (platform) {
+          return '<div class="os-tabpanel" role="tabpanel" id="panel-code-' + platform +
+            '" aria-labelledby="tab-code-' + platform + '" tabindex="0"' +
+            (platform === mine ? "" : " hidden") + ">" +
+            '<p class="note">' + short[platform] + "</p>" +
+            '<pre><code id="code-' + platform + '">' + esc(commandFor(platform, data.code)) + "</code></pre>" +
+            '<button type="button" class="btn primary" data-copy="code-' + platform +
+            '" data-os="' + platform + '">Copy the command</button>' +
+            '<p class="node-alt"><span>Node 18+ installed?</span> A nicer installer, same job:<br>' +
+            "<code>" + esc(nodeCommand(data.code)) + "</code></p>" +
+            "</div>";
+        }).join("") +
+      "</div>" +
       '<p class="form-status good">That is everything. The machine appears on ' +
       '<a href="/points/">the points chart</a> by name once it is idle.</p>' +
       (data.renew ? '<p class="note">Code expired before you got to it? ' +
@@ -131,13 +161,9 @@
     form.parentNode.insertBefore(panel, form.nextSibling);
     status.textContent = "";
 
-    function copy(text, button) {
-      var original = button.textContent;
-      var done = function () { button.textContent = "Copied"; setTimeout(function () { button.textContent = original; }, 1600); };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done, function () {});
-      }
-    }
+    var tabGroup = panel.querySelector("[data-os-tabs]");
+    if (tabGroup && window.Kituwa && window.Kituwa.initTabs) { window.Kituwa.initTabs(tabGroup); }
+
     var renewButton = panel.querySelector("#renew-code");
     if (renewButton && data.renew) {
       renewButton.addEventListener("click", function () {
@@ -160,11 +186,6 @@
       });
     }
 
-    Array.prototype.forEach.call(panel.querySelectorAll("[data-copy]"), function (button) {
-      button.addEventListener("click", function () {
-        copy(commandFor(button.getAttribute("data-copy"), data.code), button);
-      });
-    });
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
