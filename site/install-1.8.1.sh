@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.7.0"
+VERSION="1.8.1"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -556,7 +556,12 @@ install_k3s() {
         spinner_stop "$rc"
         rm -rf "$tmp"
         [ "$rc" = "0" ] || die "the k3s installer failed; see the output above"
-        ok "k3s agent installed as a systemd service"
+        if [ "$DRY_RUN" != "1" ]; then
+    systemctl enable k3s-agent >/dev/null 2>&1 || true
+    [ "$(systemctl is-enabled k3s-agent 2>/dev/null)" = "enabled" ] \
+      && ok "installed and enabled at boot (starts after every reboot)" \
+      || warn "installed, but could not confirm boot enablement"
+  fi
         return 0
       fi
     else
@@ -575,7 +580,12 @@ install_k3s() {
   spinner_stop "$rc"
   rm -rf "$tmp"
   [ "$rc" = "0" ] || die "the k3s installer failed; see the output above"
-  ok "k3s agent installed as a systemd service"
+  if [ "$DRY_RUN" != "1" ]; then
+    systemctl enable k3s-agent >/dev/null 2>&1 || true
+    [ "$(systemctl is-enabled k3s-agent 2>/dev/null)" = "enabled" ] \
+      && ok "installed and enabled at boot (starts after every reboot)" \
+      || warn "installed, but could not confirm boot enablement"
+  fi
 }
 
 wait_for_agent() {
@@ -667,68 +677,85 @@ is_busy() {
 }
 
 end_screen() {
-  # stdin is the pipe from `curl`, so read keys from the terminal itself.
   { exec 3</dev/tty; } 2>/dev/null || return 0
   [ -t 1 ] || return 0
-  local mins need quiet stuck points node key
+  local mins need quiet stuck points node key forced
   node="${NODE_NAME:-$(hostname -s)}"
   mins="$(idle_minutes)"; mins="${mins:-5}"
-  need=$((mins * 60)); quiet=0; stuck=0
+  need=$((mins * 60)); quiet=0; stuck=0; note=""
+
+  # Draw the frame once, then overwrite it in place. Erasing the screen on every
+  # tick is what made the whole window blink.
+  printf '\033[2J\033[H\033[?25l'
+  trap 'printf "\033[?25h"' EXIT
 
   while :; do
-    # Same rule the cluster gate uses: below 60% of the cores counts as quiet.
+    set +e
     cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)
     load=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo 0)
     limit=$(awk -v c="$cores" 'BEGIN{printf "%.2f", c*0.6}')
     if awk -v l="$load" -v t="$limit" 'BEGIN{exit !(l>=t)}'; then
-      quiet=0; stuck=$((stuck + 1))
+      quiet=0; stuck=$((stuck + 2))
     else
       quiet=$((quiet + 2)); stuck=0
     fi
     [ -f /run/kituwa-force-active ] && quiet="$need"
 
-    # Points come from the published snapshot, so the panel shows the real total.
-    points="$(curl -sS -m 3 https://k3s.kituwa.com/api/v1/points/pull 2>/dev/null | head -c 0)"
     points="$(curl -sS -m 3 https://k3s.kituwa.com/points/live.json 2>/dev/null \
-      | sed -n "s/.*\"node\":\"$node\",\"points\":\([0-9.]*\).*/\1/p" | head -1)"
-
-    printf '\033[H\033[2J'
-    banner
-    printf '  %sConnected.%s  %s is a worker in the Kituwa cluster.\n\n' "$C_OK" "$C_RESET" "$node"
-    printf '  points earned      %s\n' "${points:-0}"
-    printf '  load now           %s  (idle when below %s)\n' "$load" "$limit"
-    printf '  idle rule          quiet for %s minute(s)\n\n' "$mins"
-
+      | sed -n "s/.*\"node\":\"$node\",\"points\":\([0-9.]*\).*/\1/p" | head -1 || true)"
+    forced=""
     if [ -f /run/kituwa-force-active ]; then
-      printf '  %sWORKING NOW%s  forced by you for 30 minutes.\n' "$C_OK" "$C_RESET"
-    elif [ "$quiet" -ge "$need" ]; then
-      printf '  %sAVAILABLE%s  the cluster may schedule work here now.\n' "$C_OK" "$C_RESET"
-    elif [ "$stuck" -ge 900 ]; then
-      printf '  %sNOT GOING IDLE%s  something has kept this machine busy for %s minutes.\n' \
-        "$C_ERR" "$C_RESET" "$((stuck / 60))"
-      printf '  no work will be scheduled until it is quiet for %s minutes. Close what is running.\n' "$mins"
-    else
-      printf '  %sBUSY%s  work starts after %s more quiet minute(s).\n' \
-        "$C_WARN" "$C_RESET" "$(( (need - quiet + 59) / 60 ))"
+      forced="$(date -d "@$(( $(stat -c %Y /run/kituwa-force-active 2>/dev/null || date +%s) + 1800 ))" +%H:%M 2>/dev/null)"
     fi
-    printf '\n  [s] start now   [a] adjust idle rule   [q] quit\n  -> '
+
+    printf '\033[H'
+    printf '  %s%s\033[0m  %-56s\033[K\n' "$C_HEAD" "KITUWA CLUSTER v$VERSION" ""
+    printf '  Connected. %s is a worker. It keeps working without this window.\033[K\n\n' "$node"
+    printf '  points earned      %-8s\033[K\n' "${points:-0}"
+    printf '  load now           %-6s (idle below %s)\033[K\n' "$load" "$limit"
+    printf '  idle rule          quiet for %s minute(s)\033[K\n' "$mins"
+    if [ -n "$forced" ]; then printf '  start now          forced until %s\033[K\n' "$forced"; fi
+    printf '\n'
+    if [ -n "$forced" ]; then
+      printf '  %sWORKING NOW%s  you forced it; the cluster may schedule work here.\033[K\n' "$C_OK" "$C_RESET"
+    elif [ "$quiet" -ge "$need" ]; then
+      printf '  %sAVAILABLE%s  the cluster may schedule work here now.\033[K\n' "$C_OK" "$C_RESET"
+    elif [ "$stuck" -ge 900 ]; then
+      printf '  %sNOT GOING IDLE%s  busy for %s minutes; close what is running.\033[K\n' "$C_ERR" "$C_RESET" "$((stuck / 60))"
+    else
+      printf '  %sBUSY%s  work starts after %s more quiet minute(s).\033[K\n' "$C_WARN" "$C_RESET" "$(( (need - quiet + 59) / 60 ))"
+    fi
+    [ -n "$note" ] && printf '  %s%s%s\033[K\n' "$C_OK" "$note" "$C_RESET" || printf '\033[K\n'
+    printf '  [s] start now   [a] adjust idle rule   [q] close this panel only\033[K\n'
+    printf '  This window is just a status view - closing it never stops the worker.\033[K\n'
+    printf '  To stop the worker: sudo systemctl stop k3s-agent && sudo systemctl disable k3s-agent\033[K\n'
+    printf '  -> \033[K'
 
     if IFS= read -r -t 2 -n 1 -u 3 key; then
       case "$key" in
-        s|S) touch /run/kituwa-force-active 2>/dev/null || true; quiet="$need" ;;
-        a|A) printf '\n  Minutes of quiet before idle [%s]: ' "$mins"
+        s|S) if touch /run/kituwa-force-active 2>/dev/null; then
+               note="Started now: forced until $(date -d @$(( $(date +%s) + 1800 )) +%H:%M)"
+             else
+               note="Could not force it — this needs sudo."
+             fi
+             sleep 1 ;;
+        a|A) printf '\r  Minutes of quiet before idle [%s]: \033[K' "$mins"
              if IFS= read -r -t 20 -u 3 ans && [ -n "${ans:-}" ]; then
-               case "$ans" in *[!0-9]*) : ;; *) mins="$ans"; need=$((mins * 60))
-                 install -d -m 0755 /etc/kituwa 2>/dev/null || true
-                 printf 'IDLE_MINUTES=%s\n' "$mins" > /etc/kituwa/idle.conf 2>/dev/null || true ;;
+               case "$ans" in *[!0-9]*) ;;
+                 *) mins="$ans"; need=$((mins * 60))
+                    install -d -m 0755 /etc/kituwa 2>/dev/null || true
+                    printf 'IDLE_MINUTES=%s\n' "$mins" > /etc/kituwa/idle.conf 2>/dev/null || true
+                    note="Idle rule set to $mins minute(s)." ;;
                esac
              fi ;;
         q|Q) break ;;
       esac
     fi
+    set -e
   done
-  exec 3<&-
-  printf '\n  Left it running. The agent is a service: it keeps working after this closes.\n\n'
+  printf '\033[?25h\n'
+  printf '  Panel closed. The worker is still running: it starts on boot and survives this.\n'
+  printf '  To stop the worker: sudo systemctl stop k3s-agent && sudo systemctl disable k3s-agent\n\n'
 }
 
 # ------------------------------------------------------------ uninstall -----
@@ -779,6 +806,8 @@ summary() {
   printf '%s────────────────────────────────────────────────────────%s\n' "$C_DIM" "$C_RESET"
   say ""
   say "Thank you for donating compute. You can see the cluster at https://k3s.kituwa.com"
+  say ""
+  end_screen || true
 }
 
 # ----------------------------------------------------------------- main -----

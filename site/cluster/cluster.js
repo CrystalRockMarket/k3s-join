@@ -4,7 +4,8 @@
     if (n == null) { return "—"; }
     if (n >= 1e6) { return (n / 1e6).toFixed(2) + "M"; }
     if (n >= 1e4) { return Math.round(n / 1e3) + "k"; }
-    return Math.round(n).toLocaleString("en-US");
+    // Two decimals: a volunteer's first minutes are fractions, not zeros.
+    return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   function ago(iso) {
     var mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -35,9 +36,8 @@
       document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
         var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
         return "<tr>" +
-          '<td class="worker-cell"><img class="px" src="/cluster/' + art + '" width="16" height="16" alt="">' +
-          "<strong>" + n.node + "</strong>" +
-          '<span class="worker-points">' + fmt(n.points) + " points</span></td>" +
+          '<td class="worker-cell">' +
+          "<strong>" + n.node + "</strong>" + "</td>" +
           "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
           "<td>" + (n.online ? '<span class="pill">online</span>' : "offline") + "</td>" +
           "<td><strong>" + fmt(n.points) + "</strong></td>" +
@@ -63,7 +63,8 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d) { return; }
-        nextIn = 15;
+        generatedAt = Date.parse(d.generated_at || "") || Date.now();
+        nextIn = Math.max(0, Math.min(15, 15 - Math.floor((Date.now() - generatedAt) / 1000)));
         var joined = d.joined || [];
         var online = joined.filter(function (x) { return x.ready; }).length;
         document.getElementById("s-nodes").textContent = joined.length ? (online + " / " + joined.length)
@@ -83,9 +84,8 @@
           seen[n.node] = true;
           var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
           return '<tr class="' + (fresh ? "row-new" : "") + '">' +
-            '<td class="worker-cell"><img class="px" src="/cluster/' + art + '" width="16" height="16" alt="">' +
-            "<strong>" + n.node + "</strong>" +
-            '<span class="worker-points">' + fmt(n.points) + " points</span></td>" +
+            '<td class="worker-cell">' +
+            "<strong>" + n.node + "</strong>" + + "</td>" +
             "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
             "<td>" + (n.pending ? '<span class="pill">pending · no work yet</span>'
                      : fresh ? '<span class="pill">just joined</span>' : "online") + "</td>" +
@@ -94,9 +94,10 @@
         }).join("");
       }).catch(function () {});
   }
-  var nextIn = 15;
+  var nextIn = 15, generatedAt = Date.now();
   setInterval(function () {
-    nextIn = nextIn > 0 ? nextIn - 1 : 0;
+    var age = Math.floor((Date.now() - generatedAt) / 1000);
+    nextIn = Math.max(0, Math.min(15, 15 - age));
     var el = document.getElementById("s-next");
     if (el) { el.textContent = nextIn > 0 ? "next update in " + nextIn + "s" : "updating…"; }
   }, 1000);
