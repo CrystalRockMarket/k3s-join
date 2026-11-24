@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -119,7 +119,18 @@ spinner_run() {
 }
 
 say()  { printf '%s\n' "$*"; }
-step() { printf '\n%s==>%s %s\n' "$C_HEAD" "$C_RESET" "$*"; }
+HIST=""
+step() {
+  if [ -t 1 ]; then
+    printf '\033[H\033[2J'
+    banner
+    if [ -n "$HIST" ]; then printf '%s' "$HIST"; fi
+  fi
+  printf '%s==>%s %s\n' "$C_HEAD" "$C_RESET" "$*"
+  HIST="${HIST}  ${C_OK}✔${C_RESET} ${*}\n"
+  # keep the header block to the last six completed steps
+  HIST="$(printf '%s' "$HIST" | tail -6)"
+}
 ok()   { printf '  %sok%s   %s\n' "$C_OK" "$C_RESET" "$*"; }
 warn() { printf '  %swarn%s %s\n' "$C_WARN" "$C_RESET" "$*" >&2; }
 die()  { printf '\n%serror%s %s\n' "$C_ERR" "$C_RESET" "$*" >&2; exit 1; }
