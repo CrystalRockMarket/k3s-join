@@ -569,7 +569,9 @@ def _oidc_error(mode: str, message: str, status: int = 400):
 
 
 def _oidc_start(mode: str):
-    if security.limited(f"oidc:start:{mode}:" + security.client_ip(), 20, 300):
+    # A redirect is cheap; a shared NAT or Cloudflare tunnel must not lock a
+    # first-time login out. Sixty starts per five minutes is still bounded.
+    if security.limited(f"oidc:start:{mode}:" + security.client_ip(), 60, 300):
         return "Too many attempts.", 429
     try:
         meta = _discovery()
@@ -584,6 +586,10 @@ def _oidc_start(mode: str):
     nonce = secrets.token_urlsafe(24)
     conn = db.connect(_cfg().db_path)
     try:
+        conn.execute(
+            "DELETE FROM oidc_states WHERE expires_at <= ? OR used_at IS NOT NULL",
+            (db.now(),),
+        )
         conn.execute(
             "INSERT INTO oidc_states(id,state_hash,verifier,nonce,mode,created_at,expires_at)"
             " VALUES(?,?,?,?,?,?,?)",

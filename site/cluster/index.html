@@ -20,6 +20,7 @@
     <a href="/earn/">Earn</a>
     <a href="/points/">Points</a>
     <a href="/join/">Join</a>
+        <a href="/mcp/">MCP</a>
     <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
   </nav>
 </header>
@@ -35,7 +36,6 @@
       <div class="stat"><span class="stat-n" id="s-nodes">—</span><span class="stat-l">workers online</span></div>
       <div class="stat"><span class="stat-n" id="s-total">—</span><span class="stat-l">points all time</span><span class="stat-sub" id="s-next"></span></div>
       <div class="stat"><span class="stat-n" id="s-24h">—</span><span class="stat-l">points last 24 h</span></div>
-      <div class="stat"><span class="stat-n" id="s-backlog">—</span><span class="stat-l">from the backlog</span></div>
     </div>
     <a class="btn join-cta" href="/join/">Join now</a>
     </div>
@@ -49,26 +49,20 @@
         <tbody id="rows"><tr><td colspan="6" class="note">Reading the published snapshot…</td></tr></tbody>
       </table>
     </div>
-    <p class="note">A volunteer machine only earns while idle. A dedicated worker earns
-      whenever it works. Members link a node and redeem points for
-      <a href="/earn/">Kituwa Premium</a>.</p>
+    <p class="note"><strong>working</strong> = reachable and running work ·
+      <strong>online</strong> = reachable and idle ·
+      <strong>pending</strong> = joined, no work yet ·
+      <strong>offline</strong> = no sample for three minutes. The control plane,
+      <code>kituwa-cloud-1</code>, is not a worker and is not listed. A volunteer
+      machine only earns while idle; a dedicated worker earns whenever it works.
+      Members link a node and redeem points for <a href="/earn/">Kituwa Premium</a>.</p>
   </section>
 
-  <section class="band" aria-labelledby="done">
-    <h2 id="done">What has been done</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Source</th><th>Units counted</th><th>Points</th></tr></thead>
-        <tbody id="sources"><tr><td colspan="3" class="note">—</td></tr></tbody>
-      </table>
-    </div>
-    <p class="note">Counted from project databases, not estimated: runs, renders, scans and commits.</p>
-  </section>
 </main>
 
 <footer class="foot">
   <div><p><strong>Kituwa</strong> — small tools, run honestly.</p></div>
-  <nav><a href="/">Home</a><a href="/points/">Points</a><a href="/join/">Join</a></nav>
+  <nav><a href="/">Home</a><a href="/points/">Points</a><a href="/join/">Join</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://services.kituwa.com/quote">Contact</a></nav>
 </footer>
 <script src="/cluster/cluster.js" defer></script>
 </body>

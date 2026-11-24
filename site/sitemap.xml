@@ -8,6 +8,12 @@
   <url><loc>https://k3s.kituwa.com/earn/rules/</loc><lastmod>2026-11-24</lastmod><priority>0.6</priority></url>
   <url><loc>https://k3s.kituwa.com/earn/premium/</loc><lastmod>2026-11-24</lastmod><priority>0.6</priority></url>
   <url><loc>https://k3s.kituwa.com/earn/docs/</loc><lastmod>2026-11-24</lastmod><priority>0.4</priority></url>
+  <url><loc>https://k3s.kituwa.com/api/</loc><lastmod>2026-11-24</lastmod><priority>0.7</priority></url>
+  <url><loc>https://k3s.kituwa.com/api/docs/</loc><lastmod>2026-11-24</lastmod><priority>0.6</priority></url>
+  <url><loc>https://k3s.kituwa.com/mcp/</loc><lastmod>2026-11-24</lastmod><priority>0.7</priority></url>
+  <url><loc>https://k3s.kituwa.com/api/</loc><lastmod>2026-11-24</lastmod><priority>0.5</priority></url>
+  <url><loc>https://k3s.kituwa.com/api/docs/</loc><lastmod>2026-11-24</lastmod><priority>0.4</priority></url>
+  <url><loc>https://k3s.kituwa.com/mcp/</loc><lastmod>2026-11-24</lastmod><priority>0.4</priority></url>
   <url><loc>https://k3s.kituwa.com/watchdog/</loc><lastmod>2026-11-23</lastmod><priority>0.4</priority></url>
   <url><loc>https://k3s.kituwa.com/privacy/</loc><lastmod>2026-11-23</lastmod><priority>0.3</priority></url>
   <url><loc>https://k3s.kituwa.com/terms/</loc><lastmod>2026-11-23</lastmod><priority>0.3</priority></url>

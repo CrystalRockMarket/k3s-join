@@ -554,3 +554,26 @@ tbody td:first-child { color: var(--ink); }
 .os-card .btn.small { width: 100%; justify-content: center; }
 kbd { font-family: var(--mono); font-size: .78em; border: 1px solid var(--line-2); border-radius: 4px; padding: 0 .3em; }
 @media (max-width: 900px) { .os-grid { grid-template-columns: 1fr; } }
+
+/* Worker state: working is active work, online is reachable but idle,
+   offline is no recent sample. The control plane is not a worker. */
+.pill.working {
+  color: var(--signal-ink);
+  background: var(--signal);
+  border-color: var(--signal);
+}
+.pill.online {
+  color: #9ec1ff;
+  border-color: rgba(120, 160, 255, .45);
+  background: rgba(120, 160, 255, .08);
+}
+.pill.pending {
+  color: var(--warn);
+  border-color: rgba(255, 180, 84, .45);
+  background: rgba(255, 180, 84, .08);
+}
+.pill.offline {
+  color: var(--soft);
+  border-color: var(--line-2);
+  background: var(--bg-2);
+}

@@ -95,6 +95,19 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   window_start TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS api_keys (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL DEFAULT '',
+  prefix TEXT NOT NULL UNIQUE,
+  key_hash TEXT NOT NULL UNIQUE,
+  scopes TEXT NOT NULL DEFAULT 'read',
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  revoked_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+
 CREATE TABLE IF NOT EXISTS node_totals (
   node TEXT PRIMARY KEY,
   points REAL NOT NULL DEFAULT 0,
@@ -226,6 +239,7 @@ def init(path: str | Path) -> None:
         user_columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
         if "pocketid_sub" not in user_columns:
             conn.execute("ALTER TABLE users ADD COLUMN pocketid_sub TEXT")
+        conn.execute("DROP TABLE IF EXISTS api_usage")
         conn.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_pocketid_sub"
             " ON users(pocketid_sub) WHERE pocketid_sub IS NOT NULL"
@@ -242,7 +256,7 @@ SEED_REWARDS = (
         "slug": "premium-30",
         "title": "Kituwa Premium — 30 days",
         "kind": "digital",
-        "cost_points": 15000,
+        "cost_points": 7000,
         "stock": None,
         "description": "One month of Kituwa Premium: the member briefing, early access to new tools, and a verified token for participating Kituwa sites.",
         "site": "premium",
@@ -254,9 +268,9 @@ SEED_REWARDS = (
         "slug": "premium-90",
         "title": "Kituwa Premium — 90 days",
         "kind": "digital",
-        "cost_points": 36000,
+        "cost_points": 18000,
         "stock": None,
-        "description": "Three months of Kituwa Premium. Saves 20% over three monthly redemptions.",
+        "description": "Three months of Kituwa Premium. Saves about 14% over three monthly redemptions.",
         "site": "premium",
         "plan": "premium",
         "term_days": 90,
@@ -266,7 +280,7 @@ SEED_REWARDS = (
         "slug": "premium-365",
         "title": "Kituwa Premium — 1 year",
         "kind": "digital",
-        "cost_points": 120000,
+        "cost_points": 60000,
         "stock": None,
         "description": "A full year of Kituwa Premium, the member briefing and early access to new tools.",
         "site": "premium",
@@ -280,6 +294,16 @@ def seed(conn: sqlite3.Connection) -> None:
     # The programme is digital-only. A physical row from an early draft is
     # never sold and is hidden and deactivated on upgrade.
     conn.execute("UPDATE rewards SET active=0 WHERE kind='physical'")
+    marker = conn.execute(
+        "SELECT 1 FROM settings WHERE key='pricing_2026_11_24'"
+    ).fetchone()
+    if marker is None:
+        for slug, cost in (("premium-30", 7000), ("premium-90", 18000),
+                           ("premium-365", 60000)):
+            conn.execute("UPDATE rewards SET cost_points=? WHERE slug=?", (cost, slug))
+        conn.execute(
+            "INSERT INTO settings(key,value) VALUES('pricing_2026_11_24','1')"
+        )
     for raw in SEED_REWARDS:
         item = {"site": "", "plan": "", "term_days": 0, "stock": None, **raw}
         conn.execute(

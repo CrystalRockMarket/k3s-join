@@ -31,10 +31,11 @@ def create_app(config: Config | None = None) -> Flask:
 
     security.init_app(app)
 
-    from . import admin, web
+    from . import admin, api, web
 
     app.register_blueprint(web.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(api.bp)
 
     from . import auth
 

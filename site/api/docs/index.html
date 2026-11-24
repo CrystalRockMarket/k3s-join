@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API docs — K3s Join &amp; Earn</title>
+<meta name="description" content="Every endpoint, error and quota rule for the K3s Join & Earn API and MCP server.">
+<link rel="canonical" href="https://k3s.kituwa.com/api/docs/">
+<meta name="theme-color" content="#0d0f12">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script defer src="/analytics.js"></script>
+<script defer src="https://analytics.shopdigital.art/matomo.js"></script>
+<script defer data-domain="k3s.kituwa.com" src="https://plausible.kituwa.com/js/script.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>k3s<span class="dim">.kituwa.com</span></span>
+  </a>
+  <nav class="top-nav">
+    <a href="/#install">Install</a>
+    <a href="/cluster/">Cluster</a>
+    <a href="/earn/">Earn</a>
+    <a href="/mcp/">MCP</a>
+    <a href="/api/">API</a>
+    <a href="/points/">Points</a>
+    <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="hero compact">
+    <p class="eyebrow">API docs</p>
+    <h1>Every endpoint, every error.</h1>
+    <p class="lede">Base URL: <code>https://k3s.kituwa.com/api/v1/public</code>.
+      Read-only JSON over HTTPS. The MCP server is at
+      <code>https://k3s.kituwa.com/mcp</code>.</p>
+  </section>
+
+  <section class="band" id="authentication">
+    <h2>Authentication</h2>
+    <p class="prose">Create a key at <a href="/account/api-keys/">/account/api-keys/</a>.
+      Send it as a bearer header:</p>
+    <pre><code>Authorization: Bearer k3s_&lt;prefix&gt;_&lt;secret&gt;</code></pre>
+    <p class="prose">Keys are scoped to <code>read</code>, stored as a SHA-256 hash,
+      revocable, and carry a last-used timestamp. Never put a key in a URL, a
+      query string, a screenshot or a public issue. A missing, unknown or revoked
+      key answers <code>401</code>; a key without the read scope answers
+      <code>403</code>.</p>
+  </section>
+
+  <section class="band" id="limits">
+    <h2>Rate limit</h2>
+    <p class="prose">The API is free. There is no monthly call counter and no price.
+      A per-minute rate limit protects the service:
+      120 requests per minute per key and client address.</p>
+    <p class="note">Over the rate limit the API answers <code>429</code> with
+      <code>Retry-After</code>. A key can be revoked at any time from the account
+      page.</p>
+  </section>
+
+  <section class="band" id="endpoints">
+    <h2>Endpoints</h2>
+
+    <h3><code>GET /api/v1/public</code></h3>
+    <p class="prose">Service index. No key required.</p>
+    <pre><code>{"ok":true,"service":"K3s Join & Earn API","version":"1.0.0",
+ "auth":"Authorization: Bearer &lt;key&gt;","scope":"read",
+ "endpoints":{"health":"/api/v1/public/health", ...},
+ "docs":"https://k3s.kituwa.com/api/docs/"}</code></pre>
+
+    <h3><code>GET /api/v1/public/health</code></h3>
+    <p class="prose">Health probe. No key required.</p>
+    <pre><code>{"ok":true,"service":"k3s-join-api","version":"1.0.0","time":"2026-11-24T03:00:00Z"}</code></pre>
+
+    <h3><code>GET /api/v1/public/cluster</code></h3>
+    <p class="prose">Key required. Worker count, live points, snapshot freshness and
+      the points rule.</p>
+    <pre><code>{"ok":true,"data":{"nodes":2,"live_points":421.4,"total_points":421.4,
+ "generated_at":"2026-11-24T03:11:30Z",
+ "rule":"1 point = 100 CPU-seconds of Kituwa work; volunteers earn only while idle"},
+ "meta":{"scope":"read","docs":"https://k3s.kituwa.com/api/docs/"}}</code></pre>
+
+    <h3><code>GET /api/v1/public/points</code></h3>
+    <p class="prose">Key required. The public points snapshot and the top worker
+      nodes.</p>
+    <pre><code>{"ok":true,"data":{"generated_at":"2026-11-24T03:11:30Z",
+ "total_points":421.4,"live_points":421.4,
+ "nodes":[{"node":"airdrop-vivobook","points":261.8,"share":62.1,
+ "last_seen":"2026-11-24T03:01:09Z"}]},"meta":{...}}</code></pre>
+
+    <h3><code>GET /api/v1/public/earn</code></h3>
+    <p class="prose">Key required. Verified members, linked nodes, points earned and
+      redeemed.</p>
+    <pre><code>{"ok":true,"data":{"members":12,"nodes":2,"earned":421.4,"redeemed":0,
+ "updated_at":"2026-11-24T03:00:00Z"},"meta":{...}}</code></pre>
+  </section>
+
+  <section class="band" id="errors">
+    <h2>Errors</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Status</th><th>Code</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>400</td><td><code>bad_request</code></td><td>The request body or parameter is not valid.</td></tr>
+          <tr><td>401</td><td><code>missing_key</code></td><td>No bearer key was sent.</td></tr>
+          <tr><td>401</td><td><code>invalid_key</code></td><td>The key is unknown or revoked.</td></tr>
+          <tr><td>403</td><td><code>forbidden</code></td><td>The key lacks the read scope.</td></tr>
+          <tr><td>404</td><td><code>not_found</code></td><td>No such endpoint.</td></tr>
+          <tr><td>429</td><td><code>rate_limited</code></td><td>More than 120 requests per minute; <code>Retry-After: 60</code>.</td></tr>
+
+        </tbody>
+      </table>
+    </div>
+    <p class="prose">Error shape:</p>
+    <pre><code>{"ok":false,"error":{"code":"rate_limited",
+ "message":"Too many requests; slow down.",
+ "docs":"https://k3s.kituwa.com/api/docs/#errors"}}</code></pre>
+  </section>
+
+  <section class="band" id="mcp">
+    <h2>MCP server</h2>
+    <p class="prose">The same data is exposed as an MCP server over HTTP at
+      <code>https://k3s.kituwa.com/mcp</code>. It speaks JSON-RPC 2.0 and uses the
+      same bearer key. The server card is at
+      <a href="/.well-known/mcp.json">/.well-known/mcp.json</a>; the human page is
+      <a href="/mcp/">/mcp/</a>.</p>
+    <p class="prose">Tools: <code>cluster_summary</code>,
+      <code>points_leaderboard</code>, <code>earn_stats</code>.</p>
+    <pre><code>POST /mcp
+Authorization: Bearer k3s_…
+Content-Type: application/json
+
+{"jsonrpc":"2.0","id":1,"method":"tools/list"}</code></pre>
+    <pre><code>{"jsonrpc":"2.0","id":1,"result":{"tools":[
+ {"name":"cluster_summary","description":"Worker count, live points and snapshot freshness."},
+ {"name":"points_leaderboard","description":"The public points snapshot and top nodes."},
+ {"name":"earn_stats","description":"Public Earn programme totals."}]}}</code></pre>
+    <pre><code>{"jsonrpc":"2.0","id":2,"method":"tools/call",
+ "params":{"name":"cluster_summary","arguments":{}}}</code></pre>
+  </section>
+
+  <section class="band" id="keys">
+    <h2>Key management</h2>
+    <p class="prose">Key management uses your Earn session, not a bearer key:</p>
+    <ul class="prose">
+      <li><code>GET /account/api-keys/</code> — list your keys and prefixes.</li>
+      <li><code>POST /account/api-keys/</code> — create a key; the plaintext is shown once.</li>
+      <li><code>POST /account/api-keys/&lt;id&gt;/revoke</code> — revoke a key.</li>
+    </ul>
+    <p class="note">The session form requires the CSRF token from the page. Keys are
+      created only for verified accounts; five creations per hour per account.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div>
+    <p><strong>Kituwa</strong> — small tools, run honestly.</p>
+  </div>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/api/">API</a>
+    <a href="/mcp/">MCP</a>
+    <a href="/account/api-keys/">Keys</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="/watchdog/">Status</a>
+  </nav>
+</footer>
+
+<script src="/app.js" defer></script>
+</body>
+</html>

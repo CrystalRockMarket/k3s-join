@@ -19,9 +19,24 @@ boundary are in [docs/TAILSCALE-SETUP.md](docs/TAILSCALE-SETUP.md).
 Kituwa runs small tools — scrapers, renderers, build pipelines, site backends —
 on hardware it owns instead of rented cloud. A worker node turns somebody's spare
 desktop into capacity that would otherwise sit idle. Today that is **donating
-compute for the cause**; there is no payment, no token and no promise of one.
-If the work earns money one day, rewarding contributors is worth doing, but it is
-a hope, not a guarantee.
+compute for the cause** and earn Kituwa Compute Points for measured work. Points
+are a loyalty credit, not money and not a token. A linked node earns points, and
+members redeem them for **Kituwa Premium** — digital subscriptions to our sites,
+with no physical goods and no shipping.
+
+## Earn, plainly
+
+An Earn account is optional. Join the cluster, create an account, and run one
+claim command on the machine to link it; the node then credits that account for
+the work it performs while idle. Redeem points for Premium time on this site and
+on partner sites that verify the token server-side. There is no cash payout, no
+physical reward, no shipping and no address collection. The public API is free,
+with no monthly allowance and no paid tiers; keys exist only to attribute and
+revoke access.
+
+- Earn: <https://k3s.kituwa.com/earn/>
+- Rules: <https://k3s.kituwa.com/earn/rules/>
+- API docs: <https://k3s.kituwa.com/api/docs/>
 
 ## Quick start
 
@@ -72,7 +87,7 @@ rejoins when it wakes.
    rather than half-installing.
 2. **Joins the tailnet.** Installs Tailscale from its official script and joins
    with the key in the join code, tagged `tag:k3s`.
-3. **Writes config.** `/etc/rancher/k3s/config.yaml` plus a `0600` token file.
+3. **Writes config.** `/etc/kituwa/config.yaml` plus a `0600` token file.
    Nothing is written to your home directory.
 4. **Installs k3s.** The official installer, agent mode, version pinned to the
    cluster, binary verified against its published sha256.
@@ -92,6 +107,8 @@ curl -fsSL https://k3s.kituwa.com/install.sh | less
   read drives like any WSL shell, but nothing is mounted into a workload.
 - No shell for anyone. A worker does not hand out logins.
 - No mining, no network scanning, no proxying, no wallet or payment data.
+- No physical rewards, shipping or address collection. Points redeem for digital
+  Premium only, and have no cash value.
 - No hidden binaries: no compiled artifact ships with this project.
 - No lock-in: `--uninstall` removes the agent, its config and optionally the
   tailnet login.
@@ -131,7 +148,8 @@ install.ps1             Windows wrapper: WSL2 + systemd, then install.sh inside
 tools/mint-join-code.sh operator tool: issue and revoke join codes
 tools/revoke-node.sh    remove a node from the cluster
 site/                   the page served at https://k3s.kituwa.com
-deploy/                 nginx vhost and the publish script
+earn/                   accounts, node claims, points, Premium and the free API
+deploy/                 nginx vhost, the Earn service and the publish scripts
 tests/                  offline tests for the installers
 docs/                   architecture, join codes, operator runbook, FAQ
 ```

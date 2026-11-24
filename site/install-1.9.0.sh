@@ -8,7 +8,7 @@
 #   1. checks the machine really is a Linux host with systemd and enough room;
 #   2. joins the Tailscale tailnet with the key inside your join code, so the
 #      node is reachable by the cluster and by nothing else;
-#   3. writes /etc/rancher/k3s/config.yaml and its 0600 token file;
+#   3. writes /etc/kituwa/k3s.yaml and its 0600 token file;
 #   4. runs the official k3s installer (sha256-verified) in agent mode;
 #   5. waits for k3s-agent to be active and reports the node name.
 #
@@ -30,12 +30,12 @@ fi
 
 set -euo pipefail
 
-VERSION="1.8.2"
+VERSION="1.9.0"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
-CONFIG_DIR="/etc/rancher/k3s"
-CONFIG_FILE="$CONFIG_DIR/config.yaml"
+CONFIG_DIR="/etc/kituwa"
+CONFIG_FILE="$CONFIG_DIR/k3s.yaml"
 TOKEN_FILE="$CONFIG_DIR/token"
 K3S_INSTALL_URL="https://get.k3s.io"
 MIN_MEM_MB=1900
@@ -173,8 +173,8 @@ diagnose() {
     say "k3s: $(/usr/local/bin/k3s --version 2>/dev/null | head -1 || echo 'not installed')"
     say "service: $(systemctl is-active k3s-agent 2>/dev/null || echo unknown) / $(systemctl is-enabled k3s-agent 2>/dev/null || echo unknown)"
     say "--- config (token redacted)"
-    sed -e 's/^token:.*/token: <redacted>/' /etc/rancher/k3s/config.yaml 2>/dev/null || say "no config.yaml"
-    say "--- token: $(wc -c < /etc/rancher/k3s/token 2>/dev/null || echo 0) bytes, (content withheld)"
+    sed -e 's/^token:.*/token: <redacted>/' /etc/kituwa/k3s.yaml 2>/dev/null || say "no config.yaml"
+    say "--- token: $(wc -c < /etc/kituwa/token 2>/dev/null || echo 0) bytes, (content withheld)"
     say "--- tailscale: $(tailscale ip -4 2>/dev/null | head -1 || echo none)"
     say "--- api: $(curl -sk -o /dev/null -w '%{http_code}' -m 8 https://100.120.24.106:6443/version 2>/dev/null || echo unreachable)"
     say "--- last agent errors"
@@ -550,7 +550,7 @@ install_k3s() {
         INSTALL_K3S_SKIP_DOWNLOAD=true \
         INSTALL_K3S_BIN_DIR=/usr/local/bin \
         INSTALL_K3S_VERSION="$K3S_VERSION" \
-        INSTALL_K3S_EXEC="agent" \
+        INSTALL_K3S_EXEC="agent --config /etc/kituwa/k3s.yaml" \
         INSTALL_K3S_SYMLINK="skip" \
           sh "$tmp/install.sh" || rc=$?
         spinner_stop "$rc"
@@ -574,7 +574,7 @@ install_k3s() {
   spinner_start "downloading and verifying k3s $K3S_VERSION (about 70 MB)"
   rc=0
   INSTALL_K3S_VERSION="$K3S_VERSION" \
-  INSTALL_K3S_EXEC="agent" \
+  INSTALL_K3S_EXEC="agent --config /etc/kituwa/k3s.yaml" \
   INSTALL_K3S_SYMLINK="skip" \
     sh "$tmp/install.sh" || rc=$?
   spinner_stop "$rc"
@@ -897,7 +897,7 @@ if [ "$DO_RESET" = "1" ]; then
   step "resetting the k3s agent on this machine"
   run timeout 30 systemctl stop k3s-agent 2>/dev/null || true
   if [ -x /usr/local/bin/k3s-agent-uninstall.sh ]; then run /usr/local/bin/k3s-agent-uninstall.sh || true; fi
-  run rm -rf /var/lib/rancher/k3s /etc/rancher/k3s
+  run rm -rf /var/lib/rancher/k3s /etc/kituwa
   ok "clean slate"
 fi
 

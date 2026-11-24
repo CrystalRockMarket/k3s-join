@@ -17,7 +17,10 @@
     if (n == null) { return "—"; }
     if (n >= 1e6) { return (n / 1e6).toFixed(2) + "M"; }
     if (n >= 1e4) { return Math.round(n / 1e3) + "k"; }
-    return Math.round(n).toLocaleString("en-US");
+    // Two decimals: a volunteer's first minutes are real fractions.
+    return Number(n).toLocaleString("en-US", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
   }
 
   function ago(iso) {
@@ -43,11 +46,9 @@
       host.innerHTML = '<p class="note">The ledger has no samples yet.</p>';
       return;
     }
-    // A balance may only contain measured work, so this view plots the measured
-    // window: one point per measured hour since the meter started.
-    var projectedAll = cumulative(buckets, backlog);
-    var projectedValue = projectedAll[projectedAll.length - 1];
-    var measuredOnly = buckets.filter(function (b) { return b.source === "measured"; });
+    // A balance may only contain measured work. Missing source means measured:
+    // only an explicit "extrapolated" bucket is excluded.
+    var measuredOnly = buckets.filter(function (b) { return b.source !== "extrapolated"; });
     if (!measuredOnly.length) {
       host.innerHTML = '<p class="note">No measured hours yet — the meter starts collecting immediately.</p>';
       return;
@@ -65,7 +66,8 @@
     var basis = balanceValues;
     var hi = Math.max.apply(null, basis), lo = Math.min.apply(null, basis);
     var span = (hi - lo) || 1;
-    var x = function (i) { return pad + (i * (w - pad * 2)) / (buckets.length - 1); };
+    var spanX = Math.max(1, buckets.length - 1);
+    var x = function (i) { return pad + (i * (w - pad * 2)) / spanX; };
     var y = function (v) { return h - bottom - ((v - lo) / span) * (h - pad - bottom); };
 
     var svg = el("svg", { viewBox: "0 0 " + w + " " + h, class: "chart-svg", role: "img",
@@ -94,14 +96,13 @@
         "stroke-linejoin": "round", "stroke-linecap": "round" }));
     });
 
-    var firstMeasured = buckets.findIndex(function (b) { return b.source === "measured"; });
     var legend = el("text", { x: pad, y: h - 8, fill: "#6e7887", "font-size": "11",
       "font-family": "ui-monospace, monospace" });
     legend.textContent = series.map(function (l) {
       var lastValue = null;
       for (var i = l.values.length - 1; i >= 0; i--) { if (l.values[i] != null) { lastValue = l.values[i]; break; } }
       return l.label + " " + fmt(lastValue || 0);
-    }).join("   ") + "   ·   3-month projection " + fmt(projectedValue) + " (not counted)";
+    }).join("   ");
     svg.appendChild(legend);
     host.appendChild(svg);
     host.setAttribute("data-state", "ready");
@@ -150,7 +151,7 @@
     var measuredCount = points.filter(function (p) { return p.measured; }).length;
     var label = el("text", { x: pad, y: h - 8, fill: "#6e7887", "font-size": "11",
       "font-family": "ui-monospace, monospace" });
-    label.textContent = "measured " + measuredCount + " · extrapolated " + (points.length - measuredCount);
+    label.textContent = "measured " + measuredCount + (measuredCount === points.length ? "" : " · estimated " + (points.length - measuredCount));
     svg.appendChild(label);
     host.appendChild(svg);
     host.setAttribute("data-state", "ready");
@@ -170,7 +171,7 @@
     if (!nodes || !nodes.length) { return; }
     host.innerHTML = nodes.map(function (n) {
       return '<article class="card">' +
-        '<p class="card-label">' + (n.node === "trinity" ? "Dedicated worker" : "Worker") + '</p>' +
+        '<p class="card-label">' + (n.role === "dedicated" || n.node === "trinity-nc-server" ? "Dedicated worker" : "Worker") + '</p>' +
         '<h3>' + n.node + '</h3>' +
         '<p class="node-points">' + fmt(n.points) + ' points</p>' +
         (n.share != null ? '<p class="note">' + n.share + '% of the measured work</p>' : '') +
@@ -193,7 +194,7 @@
     if (!d) { return; }
     document.getElementById("total").textContent = fmt(d.total_points);
     document.getElementById("score-sub").textContent =
-      fmt(d.backlog_points) + " points from the backlog + " + fmt(d.live_points) + " measured live";
+      fmt(d.total_points) + " measured on the worker · " + fmt(d.points_24h) + " in the last 24 h";
     document.getElementById("asof").textContent =
       "Published " + ago(d.generated_at) + " · " + d.points_24h + " points in the last 24 h · " +
       "rule: " + d.rule;

@@ -1,106 +1,128 @@
 (function () {
   "use strict";
+
   function fmt(n) {
     if (n == null) { return "—"; }
     if (n >= 1e6) { return (n / 1e6).toFixed(2) + "M"; }
     if (n >= 1e4) { return Math.round(n / 1e3) + "k"; }
-    // Two decimals: a volunteer's first minutes are fractions, not zeros.
-    return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // Two decimals: a volunteer's first minutes are real fractions.
+    return Number(n).toLocaleString("en-US", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
   }
+
   function ago(iso) {
-    var mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-    if (!isFinite(mins)) { return "—"; }
-    if (mins < 1) { return "just now"; }
+    var then = new Date(iso).getTime();
+    if (!then) { return "—"; }
+    var secs = Math.max(0, Math.round((Date.now() - then) / 1000));
+    if (secs < 90) { return secs + "s ago"; }
+    var mins = Math.round(secs / 60);
     if (mins < 60) { return mins + " min ago"; }
     if (mins < 1440) { return Math.round(mins / 60) + " h ago"; }
     return Math.round(mins / 1440) + " d ago";
   }
-  fetch("/points/cluster.json", { cache: "no-store" })
-    .then(function (r) { if (!r.ok) { throw new Error(r.status); } return r.json(); })
-    .then(function (d) {
-      var joinedList = d.joined || [];
-      document.getElementById("s-nodes").textContent = joinedList.length
-        ? joinedList.filter(function (x) { return x.ready; }).length + " / " + joinedList.length
-        : d.online + " / " + d.nodes.length;
-      document.getElementById("s-total").textContent = fmt(d.total_points);
-      document.getElementById("s-24h").textContent = fmt(d.points_24h);
-      document.getElementById("s-backlog").textContent = fmt(d.backlog_points);
-      var known = {};
-      d.nodes.forEach(function (n) { known[n.node] = true; });
-      (d.joined || []).forEach(function (j) {
-        if (!known[j.node]) {
-          d.nodes.push({ node: j.node, role: j.volunteer ? "volunteer" : "dedicated",
-                         points: 0, last_seen: d.generated_at, pending: true });
-        }
-      });
-      document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
-        var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
-        return "<tr>" +
-          '<td class="worker-cell">' +
-          "<strong>" + n.node + "</strong>" + "</td>" +
-          "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
-          "<td>" + (n.online ? '<span class="pill">online</span>' : "offline") + "</td>" +
-          "<td><strong>" + fmt(n.points) + "</strong></td>" +
-          "<td>" + n.share + "%</td>" +
-          "<td>" + ago(n.last_seen) + "</td></tr>";
-      }).join("") || '<tr><td colspan="6" class="note">No workers have reported yet.</td></tr>';
-      document.getElementById("sources").innerHTML = d.backlog_sources.map(function (b) {
-        return "<tr><td>" + b.source + "</td><td>" + b.units + "</td><td>" + fmt(b.points) + "</td></tr>";
-      }).join("");
-      document.getElementById("stats").insertAdjacentHTML("afterend",
-        '<p class="note">Snapshot taken ' + ago(d.generated_at) + ", published by the worker.</p>");
-    })
-    .catch(function () {
-      document.getElementById("rows").innerHTML =
-        '<tr><td colspan="6" class="note">The worker is offline — this page shows the last published snapshot.</td></tr>';
-    });
 
-  // Live tail: poll a tiny snapshot every 5 s and redraw as soon as a worker
-  // appears or its points move. The static page keeps working if this stops.
-  var seen = {};
+  function statusOf(n) {
+    if (n.pending) { return "pending"; }
+    if (n.online === false || n.ready === false) { return "offline"; }
+    return n.working ? "working" : "online";
+  }
+
+  function statusPill(n) {
+    var state = statusOf(n);
+    return '<span class="pill ' + state + '">' + state + "</span>";
+  }
+
+  // The ledger keeps the member-facing name; k3s derives its node name from the
+  // hostname. Both are the same machine, so map one to the other instead of
+  // showing it twice.
+  var ALIASES = { trinity: "trinity-nc-server" };
+  function canonical(name) { return ALIASES[name] || name; }
+
+  function mergeNodes(d) {
+    var nodes = (d.nodes || []).map(function (n) {
+      var copy = Object.assign({}, n);
+      copy.node = canonical(copy.node);
+      return copy;
+    });
+    var known = {};
+    nodes.forEach(function (n) { known[n.node] = true; });
+    (d.joined || []).forEach(function (j) {
+      var name = canonical(j.node);
+      if (name === "kituwa-cloud-1") { return; }   // control plane, not a worker
+      if (known[name]) { return; }
+      nodes.push({
+        node: name,
+        role: j.volunteer ? "volunteer" : "dedicated",
+        points: 0,
+        last_seen: d.generated_at,
+        pending: true,
+        online: j.ready !== false
+      });
+      known[name] = true;
+    });
+    return nodes;
+  }
+
+  function render(d) {
+    var nodes = mergeNodes(d);
+    var total = nodes.reduce(function (a, n) { return a + (n.points || 0); }, 0);
+    var online = nodes.filter(function (n) { return statusOf(n) !== "offline"; }).length;
+
+    document.getElementById("s-nodes").textContent = online + " / " + nodes.length;
+    document.getElementById("s-total").textContent = fmt(d.total_points != null ? d.total_points : total);
+    var day = d.points_24h != null ? d.points_24h : d.points_10m;
+    document.getElementById("s-24h").textContent = fmt(day);
+
+    document.getElementById("rows").innerHTML = nodes.map(function (n) {
+      var share = n.share;
+      if (share == null && total && n.points) {
+        share = Math.round((n.points / total) * 1000) / 10;
+      }
+      return "<tr>" +
+        '<td class="worker-cell"><strong>' + n.node + "</strong></td>" +
+        "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
+        "<td>" + statusPill(n) + "</td>" +
+        "<td><strong>" + fmt(n.points) + "</strong></td>" +
+        "<td>" + (share == null ? "—" : share + "%") + "</td>" +
+        "<td>" + ago(n.last_seen) + "</td></tr>";
+    }).join("") || '<tr><td colspan="6" class="note">No workers have reported yet.</td></tr>';
+  }
+
+  function load() {
+    fetch("/points/cluster.json", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) { throw new Error(r.status); } return r.json(); })
+      .then(function (d) {
+        generatedAt = Date.parse(d.generated_at || "") || Date.now();
+        render(d);
+      })
+      .catch(function () {
+        document.getElementById("rows").innerHTML =
+          '<tr><td colspan="6" class="note">The worker is offline — this is the last published snapshot.</td></tr>';
+      });
+  }
+
+  // Live tail: a small snapshot every 5 s. Merge by node name so a machine that
+  // joined but has no points yet appears once, as pending.
+  var generatedAt = Date.now();
   function poll() {
     fetch("/points/live.json", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d) { return; }
-        generatedAt = Date.parse(d.generated_at || "") || Date.now();
-        nextIn = Math.max(0, Math.min(15, 15 - Math.floor((Date.now() - generatedAt) / 1000)));
-        var joined = d.joined || [];
-        var online = joined.filter(function (x) { return x.ready; }).length;
-        document.getElementById("s-nodes").textContent = joined.length ? (online + " / " + joined.length)
-          : (d.active_nodes + " / " + d.nodes.length);
-        document.getElementById("s-total").textContent = fmt(d.total_points);
-        document.getElementById("s-24h").textContent = fmt(d.points_24h != null ? d.points_24h : d.points_10m);
-        var known = {};
-      d.nodes.forEach(function (n) { known[n.node] = true; });
-      (d.joined || []).forEach(function (j) {
-        if (!known[j.node]) {
-          d.nodes.push({ node: j.node, role: j.volunteer ? "volunteer" : "dedicated",
-                         points: 0, last_seen: d.generated_at, pending: true });
-        }
-      });
-      document.getElementById("rows").innerHTML = d.nodes.map(function (n) {
-          var fresh = !seen[n.node];
-          seen[n.node] = true;
-          var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
-          return '<tr class="' + (fresh ? "row-new" : "") + '">' +
-            '<td class="worker-cell">' +
-            "<strong>" + n.node + "</strong></td>" +
-            "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
-            "<td>" + (n.pending ? '<span class="pill">pending · no work yet</span>'
-                     : fresh ? '<span class="pill">just joined</span>' : "online") + "</td>" +
-            "<td><strong>" + fmt(n.points) + "</strong></td><td>—</td>" +
-            "<td>" + ago(n.last_seen) + "</td></tr>";
-        }).join("");
-      }).catch(function () {});
+        generatedAt = Date.parse(d.generated_at || "") || generatedAt;
+        render(d);
+      })
+      .catch(function () {});
   }
-  var nextIn = 15, generatedAt = Date.now();
+
   setInterval(function () {
-    var age = Math.floor((Date.now() - generatedAt) / 1000);
-    nextIn = Math.max(0, Math.min(15, 15 - age));
     var el = document.getElementById("s-next");
-    if (el) { el.textContent = nextIn > 0 ? "next update in " + nextIn + "s" : "updating…"; }
+    if (!el) { return; }
+    el.textContent = ago(new Date(generatedAt).toISOString());
   }, 1000);
+
+  load();
   poll();
   setInterval(poll, 5000);
 })();

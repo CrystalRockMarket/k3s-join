@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API — K3s Join &amp; Earn</title>
+<meta name="description" content="Read-only cluster, points and Earn data over HTTPS. One bearer key, free to use, and an MCP server with the same three tools.">
+<link rel="canonical" href="https://k3s.kituwa.com/api/">
+<meta property="og:title" content="API — K3s Join &amp; Earn">
+<meta property="og:description" content="The Kituwa cluster as data: workers, points and Earn totals over a keyed HTTPS API.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://k3s.kituwa.com/api/">
+<meta property="og:image" content="https://k3s.kituwa.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="theme-color" content="#0d0f12">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<script defer src="/analytics.js"></script>
+<script defer src="https://analytics.shopdigital.art/matomo.js"></script>
+<script defer data-domain="k3s.kituwa.com" src="https://plausible.kituwa.com/js/script.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>k3s<span class="dim">.kituwa.com</span></span>
+  </a>
+  <nav class="top-nav">
+    <a href="/#install">Install</a>
+    <a href="/cluster/">Cluster</a>
+    <a href="/earn/">Earn</a>
+    <a href="/mcp/">MCP</a>
+    <a href="/#how">How it works</a>
+    <a href="/points/">Points</a>
+    <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <p class="eyebrow">Developer access</p>
+    <h1>The cluster as data.</h1>
+    <p class="lede">
+      A small, read-only HTTPS API for the Kituwa k3s cluster: worker count,
+      live points, the public leaderboard and Earn programme totals. One bearer
+      key per caller, free to use, and the same three tools over MCP.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="/account/api-keys/">Create a key</a>
+      <a class="btn" href="/api/docs/">Read the docs</a>
+    </div>
+    <dl class="facts">
+      <div><dt>API</dt><dd>Free</dd></div>
+      <div><dt>Scope</dt><dd>read</dd></div>
+      <div><dt>Transport</dt><dd>HTTPS</dd></div>
+      <div><dt>MCP</dt><dd>HTTP</dd></div>
+    </dl>
+  </section>
+
+  <section class="band">
+    <h2>What you get</h2>
+    <p class="prose">Every endpoint is a <code>GET</code>, returns JSON, and never
+      writes cluster state. The points snapshot is produced on the worker; the
+      API only reads the published copy.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>What it returns</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/public/cluster</code></td><td>Worker count, live points, snapshot freshness and the points rule.</td></tr>
+          <tr><td><code>GET /api/v1/public/points</code></td><td>The public points totals and the top worker nodes.</td></tr>
+          <tr><td><code>GET /api/v1/public/earn</code></td><td>Verified members, linked nodes, points earned and redeemed.</td></tr>
+          <tr><td><code>GET /api/v1/public/health</code></td><td>Service health; no key required.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">The MCP server exposes the same data as
+      <code>cluster_summary</code>, <code>points_leaderboard</code> and
+      <code>earn_stats</code>. See <a href="/mcp/">/mcp/</a>.</p>
+  </section>
+
+  <section class="band" id="keys">
+    <h2>Get a key</h2>
+    <ol class="prose">
+      <li>Create an Earn account at <a href="/account/signup/">/account/signup/</a> and verify your email.</li>
+      <li>Open <a href="/account/api-keys/">/account/api-keys/</a>.</li>
+      <li>Create a key. It is shown once; copy it then. Only its hash is stored.</li>
+    </ol>
+    <p class="prose">Send it as a header, never in a URL:</p>
+    <pre><code>curl -H "Authorization: Bearer k3s_…" \
+  https://k3s.kituwa.com/api/v1/public/cluster</code></pre>
+    <p class="note">Revoke a key at any time from the same page. A revoked key
+      answers <code>401</code> on the next request.</p>
+  </section>
+
+  <section class="band" id="errors">
+    <h2>Errors</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Status</th><th>Code</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>401</td><td><code>missing_key</code> / <code>invalid_key</code></td><td>No bearer key, or the key is unknown or revoked.</td></tr>
+          <tr><td>403</td><td><code>forbidden</code></td><td>The key does not carry the <code>read</code> scope.</td></tr>
+          <tr><td>429</td><td><code>rate_limited</code></td><td>More than 120 requests per minute for this key and address. <code>Retry-After</code> is set.</td></tr>
+          <tr><td>404</td><td><code>not_found</code></td><td>No such endpoint. See the docs for the exact paths.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Every error body carries <code>error.code</code>,
+      <code>error.message</code> and a link to the docs.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div>
+    <p><strong>Kituwa</strong> — small tools, run honestly.</p>
+    <p class="note">Read-only data, served from the host that also serves this page.</p>
+  </div>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/api/docs/">API docs</a>
+    <a href="/mcp/">MCP</a>
+    <a href="/account/api-keys/">Keys</a>
+    <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="/watchdog/">Status</a>
+  </nav>
+</footer>
+
+<script src="/app.js" defer></script>
+</body>
+</html>

@@ -22,6 +22,7 @@
     <a href="/cluster/">Cluster</a>
     <a href="/earn/">Earn</a>
     <a href="/#tiers">Tiers</a>
+        <a href="/mcp/">MCP</a>
     <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
   </nav>
 </header>
@@ -43,20 +44,20 @@
           <tr><td>This page</td><td>HTTP 5xx or a timeout at the edge</td><td><code>curl -sI https://k3s.kituwa.com/</code></td></tr>
           <tr><td>Earn service</td><td><code>/earn/</code> returns 5xx, or account and premium pages fail</td><td><code>curl -fsS https://k3s.kituwa.com/earn/ | head -3</code></td></tr>
           <tr><td>Installer download</td><td><code>/install.sh</code> returns anything but a shell script</td><td><code>curl -fsSL https://k3s.kituwa.com/install.sh | head -3</code></td></tr>
-          <tr><td>Control plane API</td><td>Nodes go <code>NotReady</code>, workloads stop scheduling</td><td><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes -o wide'</code></td></tr>
-          <tr><td>Worker heartbeat</td><td>A node stays <code>NotReady</code> past its grace period</td><td><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes'</code></td></tr>
+          <tr><td>Control plane API</td><td>The live cluster page stops updating or machines drop offline</td><td><a href="/cluster/">the live cluster page</a></td></tr>
+          <tr><td>Worker heartbeat</td><td>A machine shows offline for more than three minutes</td><td><a href="/cluster/">the live cluster page</a></td></tr>
           <tr><td>TLS certificate</td><td>Expiry inside 14 days</td><td><code>curl -sI https://k3s.kituwa.com/ | head -1</code> and the host's certbot</td></tr>
         </tbody>
       </table>
     </div>
     <p class="note">Scheduled monitoring, run history and the weekly grid live in the
-      Hub project feed: <a href="https://hub.kituwa.com/projects">hub.kituwa.com/projects</a>.</p>
+      Hub project feed: <a href="https://metrics.kituwa.com/projects">metrics.kituwa.com/projects</a>.</p>
   </section>
 
   <section class="band">
     <h2>Check it yourself</h2>
     <pre><code>curl -fsSL https://k3s.kituwa.com/install.sh | head -3</code></pre>
-    <pre><code>ssh kituwa-cloud-1 'sudo -n k3s kubectl get nodes -o wide'</code></pre>
+    <pre><code>curl -fsS https://k3s.kituwa.com/points/cluster.json | head -c 240</code></pre>
     <p class="note">If a volunteer node is offline, nothing on this site breaks: the
       page and the installers are served by the host, not by a worker.</p>
   </section>

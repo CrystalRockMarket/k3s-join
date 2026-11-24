@@ -139,13 +139,29 @@ def needs_rehash(stored: str | None) -> bool:
 # --------------------------------------------------------------------------- #
 # Request context: IP, user agent
 # --------------------------------------------------------------------------- #
+def _valid_ip(value: str) -> bool:
+    import ipaddress
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        return False
+
+
 def client_ip() -> str:
     cfg = current_app.config["EARN"]
     remote = request.remote_addr or ""
     if cfg.trust_proxy and remote in {"127.0.0.1", "::1"}:
+        # The public site is behind Cloudflare. The tunnel reaches nginx from
+        # loopback, so X-Real-IP is 127.0.0.1; CF-Connecting-IP is the client.
+        cloudflare = request.headers.get("CF-Connecting-IP", "").strip()
+        if cloudflare and _valid_ip(cloudflare):
+            return cloudflare[:45]
         forwarded = request.headers.get("X-Forwarded-For", "")
         if forwarded:
-            return forwarded.split(",")[0].strip()[:45]
+            candidate = forwarded.split(",")[0].strip()
+            if _valid_ip(candidate):
+                return candidate[:45]
     return remote[:45]
 
 

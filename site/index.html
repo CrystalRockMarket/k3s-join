@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>k3s-join — donate compute to the Kituwa cluster</title>
-<meta name="description" content="One command turns a spare Linux box, Mac or Windows PC into a worker node on the Kituwa k3s cluster. Open source, MIT, reversible in one command. Joining is by invite.">
+<meta name="description" content="One command turns a spare Linux box, Mac or Windows PC into a worker node on the Kituwa k3s cluster. Open source, MIT, reversible in one command. No signup and no code: the installer gets a one-use key itself.">
 <link rel="canonical" href="https://k3s.kituwa.com/">
 <meta property="og:title" content="k3s-join — donate compute to the Kituwa cluster">
 <meta property="og:description" content="Turn an idle machine into a worker node for the Kituwa cluster. One command, open source, leave whenever you want.">
@@ -39,6 +39,7 @@
     <a href="/points/">Points</a>
     <a href="#tiers">Tiers</a>
     <a href="#trust">Trust</a>
+        <a href="/mcp/">MCP</a>
     <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
   </nav>
 </header>
@@ -56,10 +57,10 @@
       <a class="btn join-cta" href="/join/">Join Now</a>
     </div>
     <dl class="facts">
-      <div><dt>Nodes now</dt><dd>2</dd></div>
+      <div><dt>Workers</dt><dd>2 today</dd></div>
       <div><dt>Runtime</dt><dd>k3s v1.36.5</dd></div>
       <div><dt>Source</dt><dd>MIT</dd></div>
-      <div><dt>Access</dt><dd>Invite</dd></div>
+      <div><dt>Access</dt><dd>Open</dd></div>
     </dl>
   </section>
 
@@ -67,9 +68,9 @@
     <h2 id="what">What you are joining</h2>
     <p class="prose">
       Kituwa runs a small Kubernetes cluster on hardware it owns. A control plane
-      schedules the work; worker nodes run the containers. Right now the worker
-      is one machine in a room, and every spare machine that joins replaces a
-      cloud bill with somebody's unused capacity.
+      schedules the work; worker nodes run the containers. Right now the cluster
+      is a server in a room plus the volunteer machines that have joined, and
+      every spare machine replaces a cloud bill with somebody's unused capacity.
     </p>
     <div class="grid three">
       <article class="card">
@@ -96,9 +97,9 @@
   <section class="band" id="install" aria-labelledby="install-h">
     <h2 id="install-h">Install</h2>
     <p class="prose">
-      You need a join code first — the cluster is invite-only, because a worker
-      has to be reachable by the cluster and by nothing else. Paste it where the
-      command asks.
+      Nothing to sign up for and no code to paste. The command asks the cluster
+      for a one-use join key, installs the worker and leaves it running. The key
+      is scoped to a worker: it cannot read cluster secrets or reach your network.
     </p>
 
     <div class="os-grid">
@@ -139,9 +140,9 @@
         at least 2 GB of RAM and 8 GB free on <code>/var</code>. It refuses rather
         than half-installs.</p></li>
       <li><h3>Joins the tailnet</h3><p>Installs Tailscale from its official script
-        and joins with the key inside your join code, tagged <code>tag:k3s</code>.
+        and joins with the one-use key the launcher obtains, tagged <code>tag:k3s</code>.
         That is the only network path the cluster uses.</p></li>
-      <li><h3>Writes two small files</h3><p><code>/etc/rancher/k3s/config.yaml</code>
+      <li><h3>Writes two small files in <code>/etc/kituwa</code></h3><p><code>/etc/kituwa/k3s.yaml</code>
         and a <code>0600</code> token file. Nothing in your home directory.</p></li>
       <li><h3>Runs the official k3s installer</h3><p>Agent mode only, version pinned
         to the cluster, binary checked against its published sha256.</p></li>
@@ -193,11 +194,57 @@
     </div>
   </section>
 
+  <section class="band" aria-labelledby="jobs">
+    <h2 id="jobs">What your machine actually does</h2>
+    <p class="prose">Not a marketing spinner. These are the real jobs the cluster hands
+      to a worker, in containers, one at a time, and only while the machine is idle.</p>
+    <div class="grid three">
+      <article class="card">
+        <p class="card-label">Search work</p>
+        <h3>Runs searchall.shop searches</h3>
+        <p>Fires real product searches across stores, reads the results and refreshes the
+           price index. Thousands of lookups, none of them yours.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Watching</p>
+        <h3>Checks the shops</h3>
+        <p>Watches listings and stock, spots price drops and broken pages, and reports what
+           changed — the boring vigilance nobody wants to do by hand.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Images</p>
+        <h3>Renders the artwork</h3>
+        <p>Builds product renders, thumbnails and social cards: the CPU-heavy part of
+           turning a catalogue into something you can look at.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Video</p>
+        <h3>Encodes the clips</h3>
+        <p>Transcodes and packages short video, the one job that really earns its keep —
+           a minute of encoding is a minute your machine was idle anyway.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Indexing</p>
+        <h3>Keeps the archive current</h3>
+        <p>Re-crawls pages, rebuilds search indexes and refreshes sitemaps so the public
+           sites stay accurate.</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Housekeeping</p>
+        <h3>Runs the checks</h3>
+        <p>Health checks, backups of small databases, log rotation and the nightly jobs that
+           keep the whole estate honest.</p>
+      </article>
+    </div>
+    <p class="note">Every one of these runs in a container with its own filesystem. None of
+      them can read your documents, see your browser, or touch your network.</p>
+  </section>
+
   <section class="band" id="tiers" aria-labelledby="tiers-h">
     <h2 id="tiers-h">Contributor tiers</h2>
     <p class="prose">
-      Tiers describe the machine you bring, not a payment plan. Every CPU-second
-      of measured work credits points to a linked account. Points can be redeemed
+      Tiers describe the machine you bring, not a payment plan. Every 100
+      CPU-seconds of measured work credits one point to a linked account. Points can be redeemed
       for <a href="/earn/">Kituwa Premium</a>, the member area and a subscription
       token for our sites. They are not money, not a token and not an investment,
       and there is no cash payout.
@@ -217,20 +264,19 @@
   </section>
 
   <section class="band" id="get-code" aria-labelledby="code-h">
-    <h2 id="code-h">Get a join code</h2>
+    <h2 id="code-h">Join in one command</h2>
     <p class="prose">
-      Fill in the form and your code appears on the spot: a single line carrying the
-      cluster address, an agent-only bootstrap token and a one-use tailnet key. If
-      the cluster is full or enrollment is closed, the same form lands in the
-      high-priority inbox and you get an answer by email.
+      No form and no code to copy. The command asks the cluster for a one-use key
+      and installs the worker in the same run. Every machine gets its own key, its
+      own agent token and its own revocation — a volunteer node is tainted and only
+      runs workloads allowed on volunteer hardware.
     </p>
     <p class="prose">
-      Every machine is its own node: its own key, its own token, its own revocation.
-      A volunteer node is tainted, so it runs only workloads that are allowed on
-      volunteer hardware and never touches anything with secrets.
+      If your network blocks the launcher, the optional form can email a code
+      instead. Either way, one machine is one node and leaving is one command.
     </p>
     <div class="hero-actions">
-      <a class="btn primary" href="/join/">Get a join code</a>
+      <a class="btn primary" href="/join/">Join now</a>
       <a class="btn" href="/points/">See the chart it joins</a>
     </div>
   </section>
@@ -259,10 +305,10 @@
         <p><a href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">github.com/CrystalRockMarket/k3s-join</a></p>
       </article>
       <article class="card">
-        <h3>What the join code contains</h3>
+        <h3>What the join key contains</h3>
         <p>A server address, a bootstrap token that can only be used to add a
-           worker, and a tailnet auth key scoped to the cluster tag. It cannot
-           read cluster secrets, run commands as you, or reach your network.</p>
+           worker, and a tailnet auth key scoped to the cluster tag. The launcher
+           gets it in one request; nothing is stored in your browser.</p>
       </article>
     </div>
     <p class="note">A worker is a machine the cluster can schedule pods on. If that

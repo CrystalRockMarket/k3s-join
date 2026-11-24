@@ -20,13 +20,15 @@ spec:
           args:
             - |
               echo "reporter up on $NODE_NAME"
-              prev=$(awk '/^cpu /{t=0; for(i=2;i<=NF;i++) t+=$i; print t}' /host/proc/stat)
+              cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc)
+              prev=$(awk '/^cpu /{print $2+$3+$4+$7+$8+$9}' /host/proc/stat)
               while true; do
                 sleep 60
-                now=$(awk '/^cpu /{t=0; for(i=2;i<=NF;i++) t+=$i; print t}' /host/proc/stat)
+                now=$(awk '/^cpu /{print $2+$3+$4+$7+$8+$9}' /host/proc/stat)
                 cpu=$(awk -v a="$now" -v b="$prev" 'BEGIN{printf "%.1f", (a-b)/100}')
                 prev=$now
-                body="{\"node\":\"$NODE_NAME\",\"cpu_seconds\":$cpu}"
+                load=$(awk '{print $1}' /host/proc/loadavg)
+                body="{\"node\":\"$NODE_NAME\",\"cpu_seconds\":$cpu,\"wall_seconds\":60,\"cores\":$cores,\"load1\":$load}"
                 if wget -q -O /dev/null --header='Content-Type: application/json' \
                      --post-data="$body" https://k3s.kituwa.com/api/v1/points/report; then
                   echo "reported $cpu CPU-seconds"

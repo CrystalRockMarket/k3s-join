@@ -1,4 +1,4 @@
-set VERSION=1.8.2
+set VERSION=1.9.0
 echo   Kituwa Cluster installer v%VERSION%
 @echo off
 title Kituwa Cluster - join this PC

@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Points — k3s.kituwa.com</title>
-<meta name="description" content="Kituwa Compute Points: one point per CPU-second of work, earned by every machine on the cluster — including yours, while it is idle.">
+<meta name="description" content="Kituwa Compute Points: one point per 100 CPU-seconds of work, earned by every machine on the cluster — including yours, while it is idle.">
 <link rel="canonical" href="https://k3s.kituwa.com/points/">
 <meta property="og:title" content="Kituwa Compute Points — the cluster keeps score">
-<meta property="og:description" content="trinity's work, live. One point per CPU-second. Your machine joins this chart when it is idle.">
+<meta property="og:description" content="Live measured work. One point per 100 CPU-seconds. Your machine joins this chart when it is idle.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://k3s.kituwa.com/points/">
 <meta property="og:image" content="https://k3s.kituwa.com/og-image.png">
@@ -28,6 +28,7 @@
     <a href="/earn/">Earn</a>
     <a href="/#how">How it works</a>
     <a href="/join/">Join</a>
+        <a href="/mcp/">MCP</a>
     <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
   </nav>
 </header>
@@ -36,9 +37,9 @@
   <section class="hero">
     <p class="eyebrow">Kituwa Compute Points</p>
     <h1>The cluster keeps score.</h1>
-    <p class="lede">Every CPU-second of real work on this cluster becomes a point.
-      <strong>trinity</strong> has been earning them since the first commit — and when
-      your machine joins, its work lands on this same chart.</p>
+    <p class="lede">Every 100 CPU-seconds of real work on this cluster becomes a
+      point. <strong>trinity-nc-server</strong> has been earning them since the first
+      commit — and when your machine joins, its work lands on this same chart.</p>
     <div class="score">
       <span class="score-number" id="total">—</span>
       <span class="score-label">points earned all time</span>
@@ -67,16 +68,14 @@
     </figure>
     <p class="note"><strong>Points</strong> is the balance growing: one line for the
       whole cluster and one per machine. <strong>Work</strong> is the same data as
-      effort per day — bright bars are measured, faded bars are the months before the
-      meter existed, extrapolated from recent measured use (same daily rhythm, whole
-      idle stretches). Extrapolation is drawn for shape and <strong>never</strong>
-      added to a balance.</p>
+      effort per day. Every bar is measured work; nothing is estimated or
+      extrapolated, and no bonus is added to a balance.</p>
   </section>
 
   <section class="band" aria-labelledby="now">
-    <h2 id="now">What trinity is doing right now</h2>
+    <h2 id="now">What the cluster is doing right now</h2>
     <div class="grid three" id="nodes">
-      <article class="card"><p class="card-label">Reading</p><h3>…</h3><p>Waiting for the snapshot.</p></article>
+      <article class="card"><p class="card-label">Reading</p><h3>Reading the ledger…</h3><p>Waiting for the snapshot.</p></article>
     </div>
     <p class="note" id="status-line">Live numbers come from the ledger on the worker;
       this page serves the last published snapshot, so it never breaks when the worker
@@ -117,26 +116,24 @@
         <p>Every node gets its own row and its own line here. There is no separate
            leaderboard and no sign-up: the ledger reads the cluster, and the cluster
            knows your machine's name.</p>
-        <p><a class="btn primary" href="/join/">Ask for a join code</a></p>
+        <p><a class="btn primary" href="/join/">Join in one command</a></p>
       </article>
       <article class="card">
         <h3>Points are proportional</h3>
-        <p>One point is one CPU-second, credited to the machine that spent it. Give
+        <p>One point is 100 CPU-seconds, credited to the machine that spent it. Give
            <strong>10% of the work and you earn 10% of the points</strong>; give ten
            times the work and you earn ten times the points. No bonus is based on
            who you are, when you joined, or how many machines you run — only on
            measured work, and a volunteer's idle-only rule changes <em>when</em> it
            counts, never <em>how much</em>.</p>
-        <p class="note">New machines start at zero and earn from their first sample.
-          There is no backdating to the backlog.</p>
+        <p class="note">New machines start at zero and earn from their first
+          measured sample.</p>
       </article>
       <article class="card">
         <h3>What counts</h3>
         <dl class="points-table">
-          <div><dt>1 point</dt><dd>1 CPU-second of Kituwa work</dd></div>
-          <div><dt>Job run</dt><dd>+10 for a completed scheduled job</dd></div>
-          <div><dt>Artwork / clip</dt><dd>+5 per image, +30 per video minute</dd></div>
-          <div><dt>Commit</dt><dd>+5 per committed change in an estate repo</dd></div>
+          <div><dt>1 point</dt><dd>100 CPU-seconds of measured Kituwa work</dd></div>
+          <div><dt>Bonuses</dt><dd>none — only measured work counts</dd></div>
           <div><dt>Idle rule</dt><dd>volunteers earn only while idle; dedicated workers always</dd></div>
         </dl>
       </article>
@@ -157,6 +154,8 @@
     <a href="/join/">Join</a>
     <a href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">Source</a>
     <a href="/privacy/">Privacy</a>
+    <a href="/terms/">Terms</a>
+    <a href="https://services.kituwa.com/quote">Contact</a>
   </nav>
 </footer>
 

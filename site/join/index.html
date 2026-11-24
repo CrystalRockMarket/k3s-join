@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ask for a join code — k3s.kituwa.com</title>
-<meta name="description" content="Ask to donate a machine to the Kituwa cluster. Tell me what you have and what you would run; every request is high priority and answered by email.">
+<title>Join the cluster — k3s.kituwa.com</title>
+<meta name="description" content="One command joins your machine to the Kituwa cluster. No signup, no code to paste: the launcher gets a one-use key, installs the worker and stays open on a live panel.">
 <link rel="canonical" href="https://k3s.kituwa.com/join/">
-<meta property="og:title" content="Ask for a join code — Kituwa cluster">
-<meta property="og:description" content="One short form. Every request lands in the high-priority inbox and gets a reply by email.">
+<meta property="og:title" content="Join the cluster — Kituwa">
+<meta property="og:description" content="One command. No signup. The launcher gets a one-use key and installs the worker.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://k3s.kituwa.com/join/">
 <meta property="og:image" content="https://k3s.kituwa.com/og-image.png">
@@ -20,7 +20,7 @@
 <script defer data-domain="k3s.kituwa.com" src="https://plausible.kituwa.com/js/script.js"></script>
 </head>
 <body>
-<a class="skip" href="#request">Skip to the form</a>
+<a class="skip" href="#install">Skip to the commands</a>
 
 <header class="top">
   <a class="brand" href="/">
@@ -33,109 +33,168 @@
     <a href="/earn/">Earn</a>
     <a href="/#how">How it works</a>
     <a href="/#tiers">Tiers</a>
+        <a href="/mcp/">MCP</a>
     <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
   </nav>
 </header>
 
 <main>
   <section class="hero compact">
-    <p class="eyebrow">Join code · high priority</p>
-    <h1>Ask for a join code</h1>
-    <p class="lede">One short form. If the cluster has room, your join code appears
-      on this screen and you can install straight away — no waiting for an email.
-      Either way the request lands in the high-priority inbox.</p>
+    <p class="eyebrow">No signup · no code</p>
+    <h1>Join in one command</h1>
+    <p class="lede">The launcher asks the cluster for a one-use key, installs the
+      worker and opens a live panel. You never paste a code, create an account or
+      wait for an email.</p>
+  </section>
+
+  <section class="band flush" id="install">
+    <div class="os-grid">
+      <article class="os-card">
+        <h3>Linux</h3>
+        <p class="note">Open <strong>Terminal</strong> (usually <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>), paste the line, press Enter.</p>
+        <pre><code id="cmd-join-linux">curl -fsSL https://k3s.kituwa.com/linux -o kituwa-join.sh &amp;&amp; bash kituwa-join.sh</code></pre>
+        <button class="btn small" type="button" data-copy="cmd-join-linux">Copy the command</button>
+      </article>
+      <article class="os-card">
+        <h3>macOS</h3>
+        <p class="note">Open <strong>Terminal</strong> (⌘+Space, type “Terminal”), paste the line, press Enter.</p>
+        <pre><code id="cmd-join-mac">curl -fsSL https://k3s.kituwa.com/mac -o kituwa-join.command &amp;&amp; bash kituwa-join.command</code></pre>
+        <button class="btn small" type="button" data-copy="cmd-join-mac">Copy the command</button>
+      </article>
+      <article class="os-card">
+        <h3>Windows</h3>
+        <p class="note">Open <strong>PowerShell as administrator</strong> (right-click Start), paste, press Enter.</p>
+        <pre><code id="cmd-join-win">irm https://k3s.kituwa.com/windows -OutFile "$env:TEMP\kituwa-join.cmd"; &amp; "$env:TEMP\kituwa-join.cmd"</code></pre>
+        <button class="btn small" type="button" data-copy="cmd-join-win">Copy the command</button>
+      </article>
+    </div>
+    <p class="note">The panel stays open after install and shows points, load and the
+      time until the machine is considered idle. Closing the panel never stops the
+      worker: it runs as a service and starts on boot. To stop it:
+      <code>sudo systemctl stop k3s-agent &amp;&amp; sudo systemctl disable k3s-agent</code>.</p>
+  </section>
+
+  <section class="band" aria-labelledby="how">
+    <h2 id="how">What happens when you run it</h2>
+    <ol class="steps">
+      <li><h3>It checks the machine</h3><p>Linux with systemd, a supported
+        architecture, 2 GB of RAM and 8 GB free on <code>/var</code>. It refuses
+        rather than half-installs.</p></li>
+      <li><h3>It gets a one-use key</h3><p>The launcher asks this site for a key
+        scoped to a single worker. The key is not stored in your browser and is
+        never emailed.</p></li>
+      <li><h3>It joins the tailnet and the cluster</h3><p>Tailscale is installed
+        from its official script; k3s runs in agent mode, version-pinned and
+        checksum-verified.</p></li>
+      <li><h3>It stays on the panel</h3><p>Points earned, current load against the
+        idle threshold, and the computed time until the cluster may schedule work.
+        <code>q</code> closes the panel only.</p></li>
+      <li><h3>It earns only while idle</h3><p>A volunteer node is tainted and the
+        idle gate cordons it when you are using it. Nothing is killed mid-task;
+        new work simply waits.</p></li>
+    </ol>
   </section>
 
   <section class="band flush" id="request">
-    <div class="form-grid">
-      <form id="join-form" class="join-form" novalidate>
-        <div class="field">
-          <label for="name">Your name <span class="req">required</span></label>
-          <input id="name" name="name" type="text" autocomplete="name" required maxlength="120" placeholder="Ada Lovelace">
-        </div>
+    <details class="code-form">
+      <summary>Network blocked the launcher? Ask for a code by email instead</summary>
+      <p class="prose">This form is optional. Use it if a firewall blocks the
+        one-command install above, or if you would rather have a code sent to you.
+        The request lands in the high-priority inbox and is answered by email.</p>
 
-        <div class="field">
-          <label for="email">Email <span class="req">required</span></label>
-          <input id="email" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="you@example.com">
-          <p class="hint">Only used to reply and to send the join code.</p>
-        </div>
-
-        <div class="field-row">
+      <div class="form-grid">
+        <form id="join-form" class="join-form" novalidate>
           <div class="field">
-            <label for="os">Operating system</label>
-            <select id="os" name="os">
-              <option value="">Choose one</option>
-              <option>Linux</option>
-              <option>macOS</option>
-              <option>Windows</option>
-              <option>Other / a VM</option>
-            </select>
+            <label for="name">Your name <span class="req">required</span></label>
+            <input id="name" name="name" type="text" autocomplete="name" required maxlength="120" placeholder="Ada Lovelace">
           </div>
+
           <div class="field">
-            <label for="tier">Machine class</label>
-            <select id="tier" name="tier">
-              <option value="">Not sure</option>
-              <option>Node — 2–4 cores, 4–8 GB</option>
-              <option>Workhorse — 8–12 cores, 16–32 GB</option>
-              <option>Cluster — 16+ cores, 32 GB+</option>
-            </select>
+            <label for="email">Email <span class="req">required</span></label>
+            <input id="email" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="you@example.com">
+            <p class="hint">Only used to reply and to send the join code.</p>
           </div>
-        </div>
 
-        <div class="field">
-          <label for="machine">Machine name <span class="req">used on the chart</span></label>
-          <input id="machine" name="machine" type="text" maxlength="120" placeholder="spare-laptop">
-          <p class="hint">This is the name the node shows up under on the points chart.</p>
-        </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="os">Operating system</label>
+              <select id="os" name="os">
+                <option value="">Choose one</option>
+                <option>Linux</option>
+                <option>macOS</option>
+                <option>Windows</option>
+                <option>Other / a VM</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="tier">Machine class</label>
+              <select id="tier" name="tier">
+                <option value="">Not sure</option>
+                <option>Node — 2–4 cores, 4–8 GB</option>
+                <option>Workhorse — 8–12 cores, 16–32 GB</option>
+                <option>Cluster — 16+ cores, 32 GB+</option>
+              </select>
+            </div>
+          </div>
 
-        <div class="field">
-          <label for="specs">CPU, memory, disk <span class="opt">optional</span></label>
-          <input id="specs" name="specs" type="text" maxlength="200" placeholder="8 cores / 16 GB / 500 GB SSD">
-        </div>
+          <div class="field">
+            <label for="machine">Machine name <span class="req">used on the chart</span></label>
+            <input id="machine" name="machine" type="text" maxlength="120" placeholder="spare-laptop">
+            <p class="hint">This is the name the node shows up under on the points chart.</p>
+          </div>
 
-        <div class="field">
-          <label for="body">What would you like it to do? <span class="req">required</span></label>
-          <textarea id="body" name="body" rows="5" required minlength="10" maxlength="4000"
-            placeholder="It sits idle most of the day. Any workload is fine, batch jobs especially."></textarea>
-          <p class="hint">10 characters minimum. Plain text, no links needed.</p>
-        </div>
+          <div class="field">
+            <label for="specs">CPU, memory, disk <span class="opt">optional</span></label>
+            <input id="specs" name="specs" type="text" maxlength="200" placeholder="8 cores / 16 GB / 500 GB SSD">
+          </div>
 
-        <div class="field hp" aria-hidden="true">
-          <label for="_hp">Leave this empty</label>
-          <input id="_hp" name="_hp" type="text" tabindex="-1" autocomplete="off">
-        </div>
+          <div class="field">
+            <label for="body">What would you like it to do? <span class="req">required</span></label>
+            <textarea id="body" name="body" rows="5" required minlength="10" maxlength="4000"
+              placeholder="It sits idle most of the day. Any workload is fine, batch jobs especially."></textarea>
+            <p class="hint">10 characters minimum. Plain text, no links needed.</p>
+          </div>
 
-        <p class="hint" id="enroll-hint">Checking whether the cluster can issue a code right now…</p>
-        <noscript><p class="callout">This form needs JavaScript. Email the address on <a href="https://services.kituwa.com/quote">the contact form</a> and mention “join code”.</p></noscript>
-        <button class="btn primary submit" type="submit" id="submit" disabled>Get my join code</button>
-        <p class="hint form-note">No account is needed to request a code and there is
-          no marketing list. An account is only for the <a href="/earn/">Earn programme</a>.
-          Your code is shown once and never stored on the server.</p>
-        <p class="form-status" id="status" role="status" aria-live="polite"></p>
-      </form>
+          <div class="field hp" aria-hidden="true">
+            <label for="_hp">Leave this empty</label>
+            <input id="_hp" name="_hp" type="text" tabindex="-1" autocomplete="off">
+          </div>
 
-      <aside class="form-aside">
-        <h2>What happens next</h2>
-        <ol class="steps compact-steps">
-          <li><h3>You get the code immediately</h3><p>If there is room, the code is
-            minted for this request only and shown once. No email round-trip.</p></li>
-          <li><h3>I keep the record</h3><p>Your email is how I reach you, credit the
-            machine and revoke the code if it is ever lost. It is not a waiting list.</p></li>
-          <li><h3>You run one command</h3><p>The code is a single line. Paste it where
-            the installer asks; nothing else is needed.</p></li>
-          <li><h3>You can leave any time</h3><p>One uninstall command. No notice, no
-            questions.</p></li>
-        </ol>
-        <p class="note">Prefer email? <a href="https://services.kituwa.com/quote">Use the
-          general inquiry form</a> instead — same inbox, same priority.</p>
-      </aside>
-    </div>
+          <p class="hint" id="enroll-hint">Checking whether the cluster can issue a code right now…</p>
+          <noscript><p class="callout">This form needs JavaScript. The one-command
+            install above does not. Or write to
+            <a href="https://services.kituwa.com/quote">the contact form</a> and
+            mention “join code”.</p></noscript>
+          <button class="btn primary submit" type="submit" id="submit" disabled>Get my join code</button>
+          <p class="hint form-note">No account is needed to request a code and there is
+            no marketing list. An account is only for the <a href="/earn/">Earn programme</a>.
+            Your code is shown once and never stored on the server.</p>
+          <p class="form-status" id="status" role="status" aria-live="polite"></p>
+        </form>
 
-    <noscript>
-      <p class="callout"><strong>This form needs JavaScript.</strong> Enable it, or
-        write to the address on <a href="https://kituwa.com/">kituwa.com</a> and mention
-        “join code”.</p>
-    </noscript>
+        <aside class="form-aside">
+          <h2>What happens next</h2>
+          <ol class="steps compact-steps">
+            <li><h3>You get the code immediately</h3><p>If there is room, the code is
+              minted for this request only and shown once. No email round-trip.</p></li>
+            <li><h3>I keep the record</h3><p>Your email is how I reach you, credit the
+              machine and revoke the code if it is ever lost. It is not a waiting list.</p></li>
+            <li><h3>You run one command</h3><p>The code is a single line. Paste it where
+              the installer asks; nothing else is needed.</p></li>
+            <li><h3>You can leave any time</h3><p>One uninstall command. No notice, no
+              questions.</p></li>
+          </ol>
+          <p class="note">Prefer email? <a href="https://services.kituwa.com/quote">Use the
+            general inquiry form</a> instead — same inbox, same priority.</p>
+        </aside>
+      </div>
+
+      <noscript>
+        <p class="callout"><strong>This form needs JavaScript.</strong> Enable it, or
+          write to the address on <a href="https://kituwa.com/">kituwa.com</a> and mention
+          “join code”.</p>
+      </noscript>
+    </details>
   </section>
 </main>
 
@@ -149,9 +208,11 @@
     <a href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">Source</a>
     <a href="/privacy/">Privacy</a>
     <a href="/terms/">Terms</a>
+    <a href="https://services.kituwa.com/quote">Contact</a>
   </nav>
 </footer>
 
-<script src="/join/join.js?v=12" defer></script>
+<script src="/app.js" defer></script>
+<script src="/join/join.js?v=13" defer></script>
 </body>
 </html>

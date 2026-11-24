@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}API keys — Kituwa Cluster{% endblock %}
+{% block body %}
+<section class="band narrow">
+  <p class="eyebrow">Developer access</p>
+  <h1>API keys</h1>
+  <p class="prose">One bearer key per caller, scoped to <code>read</code> and free
+    to use. There is no monthly call counter and no charge; a per-minute rate limit
+    protects the service.</p>
+
+  {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+
+  {% if new_key %}
+  <div class="flash ok">
+    <p><strong>Copy this key now — it will not be shown again.</strong></p>
+    <pre><code>{{ new_key }}</code></pre>
+    <p class="note">Use it as <code>Authorization: Bearer {{ new_key }}</code>.
+      Never put it in a URL, a screenshot or a public issue.</p>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/account/api-keys/" class="card">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label for="name">Key name</label>
+    <input id="name" name="name" maxlength="40" placeholder="e.g. my dashboard" required>
+    <button class="btn primary" type="submit">Create key</button>
+  </form>
+
+  {% if keys %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Prefix</th><th>Scope</th><th>Created</th>
+          <th>Last used</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for key in keys %}
+        <tr>
+          <td>{{ key.name }}</td>
+          <td><code>k3s_{{ key.prefix }}_…</code></td>
+          <td>{{ key.scopes }}</td>
+          <td>{{ key.created_at }}</td>
+          <td>{{ key.last_used_at or '—' }}</td>
+          <td>{{ 'revoked' if key.revoked_at else 'active' }}</td>
+          <td>
+            {% if not key.revoked_at %}
+            <form method="post" action="/account/api-keys/{{ key.id }}/revoke">
+              <input type="hidden" name="_csrf" value="{{ csrf }}">
+              <button class="btn small" type="submit">Revoke</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="note">No keys yet.</p>
+  {% endif %}
+
+  <p class="note">Read the <a href="{{ api_page }}">API page</a> and the
+    <a href="{{ docs_url }}">docs</a> for every endpoint. The MCP server is at
+    <a href="/mcp/">/mcp/</a>.</p>
+</section>
+{% endblock %}

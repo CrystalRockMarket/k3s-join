@@ -9,11 +9,9 @@
 
   <h2>Earning</h2>
   <ul class="checks">
-    <li><strong>One point is one CPU-second</strong> of real work performed for Kituwa,
-      measured by the worker's points agent. Completed work units add the published
-      bonus: {{ programme.get('job_points', {}).get('job_run', 10) }} points for a
-      scheduled job, {{ programme.get('job_points', {}).get('deploy', 25) }} for a
-      deployment, {{ programme.get('job_points', {}).get('build', 50) }} for a build.</li>
+    <li><strong>One point is 100 CPU-seconds</strong> of real work performed for Kituwa,
+      measured by the worker's points agent. Only measured CPU time counts: there
+      are no flat bonuses for a job, deployment or build.</li>
     <li><strong>Volunteer machines earn only while idle.</strong> The idle gate cordons a
       node when its load crosses 60% of its cores, so nothing new is scheduled while you
       are using the machine. Running pods are not killed.</li>
@@ -59,7 +57,7 @@
   <dl class="facts four">
     <div><dt>Members</dt><dd>{{ stats.members }}</dd></div>
     <div><dt>Nodes linked</dt><dd>{{ stats.nodes }}</dd></div>
-    <div><dt>Points earned</dt><dd>{{ stats.earned|pts }}</dd></div>
+    <div><dt>Points in member accounts</dt><dd>{{ stats.earned|pts }}</dd></div>
     <div><dt>Points redeemed</dt><dd>{{ stats.redeemed|pts }}</dd></div>
   </dl>
   <p class="note">Questions: <a href="mailto:support@kituwa.com">support@kituwa.com</a>.

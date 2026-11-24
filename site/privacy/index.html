@@ -19,6 +19,7 @@
     <a href="/">Home</a>
     <a href="/cluster/">Cluster</a>
     <a href="/earn/">Earn</a>
+        <a href="/mcp/">MCP</a>
     <a class="ghost" href="https://github.com/CrystalRockMarket/k3s-join" rel="noopener">GitHub</a>
   </nav>
 </header>
@@ -66,11 +67,14 @@
 
   <section class="band">
     <h2>The installer</h2>
-    <p class="prose">The installer does not phone home, does not create an account and
-      does not send telemetry. To join, your machine connects to two things and
-      nothing else:</p>
+    <p class="prose">The launcher makes one request to this site for a one-use join
+      key. It sends only a sanitised hostname so the node has a name; the key is
+      used once and is not stored in your browser. The installer creates no
+      account and sends no telemetry. To join, your machine connects to two things
+      and nothing else:</p>
     <ul class="checks">
-      <li><strong>This site</strong>, to download the script.</li>
+      <li><strong>This site</strong>, to download the script and ask for the one-use
+        join key.</li>
       <li><strong>The cluster</strong> over the tailnet, plus Tailscale's own
         coordination service to establish that private link.</li>
     </ul>
@@ -88,6 +92,15 @@
       needed to prevent fraud.</p>
     <p class="note">Questions, or a request to delete something:
       <a href="https://services.kituwa.com/quote">services.kituwa.com/quote</a>.</p>
+  </section>
+
+  <section class="band">
+    <h2>Who runs this</h2>
+    <p class="prose">This site and the cluster are operated by Kituwa. The quickest
+      contact is <a href="https://services.kituwa.com/quote">the contact form</a>;
+      it reaches the same inbox as the rest of the estate. Legal entity and postal
+      address are available on request. No account is required to ask a question
+      or to leave.</p>
   </section>
 </main>
 

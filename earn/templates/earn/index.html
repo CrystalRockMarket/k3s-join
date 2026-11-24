@@ -122,7 +122,8 @@
       {% endfor %}
       <a class="small-link" href="/earn/premium/">Member page</a>
     {% else %}
-      <p>No premium time yet. A 30-day redemption is {{ 15000|pts }} points.</p>
+      <p>No premium time yet. A 30-day redemption is
+        {{ premium30.cost_points|pts if premium30 else "7,000" }} points.</p>
       <a class="small-link" href="/earn/redeem/premium-30/">See Premium</a>
     {% endif %}
   </aside>

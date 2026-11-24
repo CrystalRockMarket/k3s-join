@@ -45,7 +45,7 @@ install.sh (volunteer machine)
   ├─ preflight: linux, systemd, arch, RAM, disk, kernel modules
   ├─ tailscale up --authkey --advertise-tags=tag:k3s
   ├─ curl https://<server>:6443/cacerts        (reachability, no auth)
-  ├─ write /etc/rancher/k3s/{config.yaml,token}  0600
+  ├─ write /etc/kituwa/{config.yaml,token}  0600
   ├─ get.k3s.io installer, agent mode, sha256-verified, pinned version
   └─ systemctl is-active k3s-agent
 ```

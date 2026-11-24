@@ -6,7 +6,7 @@
 
 - installs Tailscale (official script) and joins the tailnet with the key in the
   join code;
-- writes `/etc/rancher/k3s/config.yaml` and `/etc/rancher/k3s/token` (mode 0600);
+- writes `/etc/kituwa/config.yaml` and `/etc/kituwa/token` (mode 0600);
 - runs the official k3s installer in agent mode, pinned to a version and verified
   against its published sha256.
 

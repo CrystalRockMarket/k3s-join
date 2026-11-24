@@ -27,19 +27,19 @@ trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/root"
 cp -a site/. "$STAGE/root/"
 cp install.sh install-macos.sh install.ps1 "$STAGE/root/"
-cp install.sh "$STAGE/root/install-1.8.2.sh"
-cp install-macos.sh "$STAGE/root/install-macos-1.8.2.sh"
-mkdir -p "$STAGE/root/docs"
-cp docs/*.md "$STAGE/root/docs/" 2>/dev/null || true
+cp install.sh "$STAGE/root/install-1.9.0.sh"
+cp install-macos.sh "$STAGE/root/install-macos-1.9.0.sh"
 chmod 0644 "$STAGE"/root/install*.sh "$STAGE"/root/install.ps1
 
 say "uploading to $HOST:$ROOT"
 ssh -o BatchMode=yes -o ConnectTimeout=15 "$HOST" "sudo -n mkdir -p $ROOT && sudo -n chown \$(id -u):\$(id -g) $ROOT"
 tar -C "$STAGE/root" -czf - . | ssh -o BatchMode=yes "$HOST" "tar -C $ROOT -xzf -"
+ssh -o BatchMode=yes "$HOST" "sudo -n rm -rf $ROOT/docs"
 ok "files copied"
 
 say "nginx vhost"
-scp -q -o BatchMode=yes deploy/"$CONF" "$HOST:/tmp/$CONF"
+scp -q -o BatchMode=yes deploy/"$CONF" deploy/security-headers.conf "$HOST:/tmp/"
+ssh -o BatchMode=yes "$HOST" "sudo -n install -d -m 0755 /etc/nginx/snippets && sudo -n install -m 0644 /tmp/security-headers.conf /etc/nginx/snippets/k3s-security-headers.conf"
 if ! ssh -o BatchMode=yes "$HOST" "sudo -n test -d /etc/letsencrypt/live/$DOMAIN"; then
   # The real vhost points at a certificate that does not exist yet, so nginx
   # would refuse to load it. Enable an HTTP-only placeholder, get the cert,
@@ -75,7 +75,7 @@ ok "nginx reloaded"
 
 say "verify"
 sleep 2
-for path in / /styles.css /app.js /install.sh /install-macos.sh /install.ps1 /join/ /join/join.js /points/ /points/points.js /cluster/ /cluster/cluster.js /verify/ /watchdog/ /robots.txt; do
+for path in / /styles.css /app.js /install.sh /install-macos.sh /install.ps1 /join/ /join/join.js /points/ /points/points.js /cluster/ /cluster/cluster.js /verify/ /verify/verify.js /watchdog/ /api/ /api/docs/ /mcp/ /.well-known/mcp.json /robots.txt; do
   code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN$path" || true)"
   printf '  %-18s %s\n' "$path" "$code"
   [ "$code" = "200" ] || die "$path returned $code"

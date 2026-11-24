@@ -215,9 +215,14 @@ class EarnTests(unittest.TestCase):
         conn = self.db()
         try:
             kinds = {row["kind"] for row in conn.execute("SELECT kind FROM rewards")}
+            prices = {row["slug"]: row["cost_points"] for row in conn.execute(
+                "SELECT slug,cost_points FROM rewards")}
         finally:
             conn.close()
         self.assertEqual(kinds, {"digital"})
+        self.assertEqual(prices["premium-30"], 7000)
+        self.assertEqual(prices["premium-90"], 18000)
+        self.assertEqual(prices["premium-365"], 60000)
         page = self.client.get("/earn/").get_data(as_text=True)
         self.assertNotIn("sticker", page.lower())
         self.assertIn("Premium", page)
@@ -252,7 +257,7 @@ class EarnTests(unittest.TestCase):
         response = self.client.post("/earn/redeem/premium-30/", data={"_csrf": token},
                                     follow_redirects=False)
         self.assertEqual(response.status_code, 302)
-        self.assertAlmostEqual(self.balance(user["id"]), 45500.0, places=1)
+        self.assertAlmostEqual(self.balance(user["id"]), 53500.0, places=1)
         conn = self.db()
         try:
             grant = conn.execute("SELECT * FROM premium_grants").fetchone()
@@ -358,6 +363,67 @@ class EarnTests(unittest.TestCase):
         self.verify(user, verify_row)
         self.assertEqual(self.client.get("/admin/").status_code, 404)
         self.assertEqual(self.client.get("/admin/oidc/start").status_code, 503)
+
+    def test_api_key_free_mcp_and_revoke(self):
+        user, verify_row = self.signup()
+        self.verify(user, verify_row)
+        self.login()
+        csrf = self.csrf("/account/api-keys/")
+        created = self.client.post(
+            "/account/api-keys/", data={"_csrf": csrf, "name": "test key"}
+        )
+        self.assertEqual(created.status_code, 200)
+        match = re.search(
+            r"k3s_[0-9a-f]{8}_[A-Za-z0-9_-]+", created.get_data(as_text=True)
+        )
+        self.assertIsNotNone(match, "new API key was not shown")
+        key = match.group(0)
+        headers = {"Authorization": "Bearer " + key}
+
+        self.assertEqual(self.client.get("/api/v1/public/cluster").status_code, 401)
+        ok = self.client.get("/api/v1/public/cluster", headers=headers)
+        self.assertEqual(ok.status_code, 200)
+        self.assertTrue(ok.get_json()["ok"])
+        self.assertNotIn("free_limit", ok.get_json()["meta"])
+        self.assertNotIn("calls_used", ok.get_json()["meta"])
+
+        listing = self.client.post(
+            "/mcp",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers=headers,
+        )
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(len(listing.get_json()["result"]["tools"]), 3)
+
+        called = self.client.post(
+            "/mcp",
+            json={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {"name": "cluster_summary", "arguments": {}},
+            },
+            headers=headers,
+        )
+        self.assertEqual(called.status_code, 200)
+        self.assertFalse(called.get_json()["result"]["isError"])
+
+        conn = self.db()
+        try:
+            row = conn.execute(
+                "SELECT id FROM api_keys WHERE name='test key'"
+            ).fetchone()
+        finally:
+            conn.close()
+        csrf = self.csrf("/account/api-keys/")
+        revoked = self.client.post(
+            f"/account/api-keys/{row['id']}/revoke", data={"_csrf": csrf}
+        )
+        self.assertEqual(revoked.status_code, 302)
+        self.assertEqual(
+            self.client.get("/api/v1/public/cluster", headers=headers).status_code,
+            401,
+        )
 
 
 if __name__ == "__main__":

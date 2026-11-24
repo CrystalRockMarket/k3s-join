@@ -45,12 +45,14 @@ def _member_data(conn, user) -> dict:
     month = domain.leaderboard(conn, days=30, limit=15)
     all_time = domain.leaderboard(conn, days=0, limit=15)
     premium = domain.premium_status(conn, user["id"])
+    premium30 = next((r for r in rewards if r["slug"] == "premium-30"), None)
     earned = conn.execute(
         "SELECT COALESCE(SUM(points),0) AS n FROM ledger WHERE user_id=? AND points>0",
         (user["id"],),
     ).fetchone()["n"]
     return {"nodes": nodes, "balance": balance, "rewards": rewards, "recent": recent,
-            "month": month, "all_time": all_time, "premium": premium, "earned": earned}
+            "month": month, "all_time": all_time, "premium": premium,
+            "earned": earned, "premium30": premium30}
 
 
 def _programme() -> dict:
