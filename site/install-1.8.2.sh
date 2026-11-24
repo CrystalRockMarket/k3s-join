@@ -30,7 +30,7 @@ fi
 
 set -euo pipefail
 
-VERSION="1.8.1"
+VERSION="1.8.2"
 DEFAULT_K3S_VERSION="v1.36.5+k3s1"
 DEFAULT_SERVER="https://100.120.24.106:6443"
 KITUWA_TAG="tag:k3s"
@@ -189,7 +189,7 @@ diagnose() {
 
   jar="$(mktemp)"
   tok="$(curl -sS -c "$jar" -m 15 https://k3s.kituwa.com/api/v1/forms/k3s-join/token 2>/dev/null \
-    | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+    | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' || true)"
   if [ -z "$tok" ]; then
     say "  could not get a form token (no network to k3s.kituwa.com?)"
   else
@@ -333,7 +333,7 @@ preflight() {
 
   local mem_mb disk_mb arch
   mem_mb="$(awk '/MemTotal/ {printf "%d", $2/1024}' /proc/meminfo)"
-  disk_mb="$(df -Pm /var 2>/dev/null | awk 'NR==2 {print $4}')"
+  disk_mb="$(df -Pm /var 2>/dev/null | awk 'NR==2 {print $4}' || true)"
   arch="$(uname -m)"
   [ "$mem_mb" -ge "$MIN_MEM_MB" ] || die "only ${mem_mb} MB of RAM; ${MIN_MEM_MB} MB is the minimum for a worker"
   [ "${disk_mb:-0}" -ge "$MIN_DISK_MB" ] || die "only ${disk_mb:-0} MB free on /var; ${MIN_DISK_MB} MB is the minimum"
@@ -681,13 +681,13 @@ end_screen() {
   [ -t 1 ] || return 0
   local mins need quiet stuck points node key forced
   node="${NODE_NAME:-$(hostname -s)}"
-  mins="$(idle_minutes)"; mins="${mins:-5}"
+  mins="$(idle_minutes || true)"; mins="${mins:-5}"
   need=$((mins * 60)); quiet=0; stuck=0; note=""
 
   # Draw the frame once, then overwrite it in place. Erasing the screen on every
   # tick is what made the whole window blink.
   printf '\033[2J\033[H\033[?25l'
-  trap 'printf "\033[?25h"' EXIT
+  trap 'printf "\033[?25h"; on_exit_report' EXIT
 
   while :; do
     set +e
@@ -702,7 +702,7 @@ end_screen() {
     [ -f /run/kituwa-force-active ] && quiet="$need"
 
     points="$(curl -sS -m 3 https://k3s.kituwa.com/points/live.json 2>/dev/null \
-      | sed -n "s/.*\"node\":\"$node\",\"points\":\([0-9.]*\).*/\1/p" | head -1 || true)"
+      | sed -n "s/.*\"node\":\"$node\",[^}]*\"points\":\([0-9.]*\).*/\1/p" | head -1 || true)"
     forced=""
     if [ -f /run/kituwa-force-active ]; then
       forced="$(date -d "@$(( $(stat -c %Y /run/kituwa-force-active 2>/dev/null || date +%s) + 1800 ))" +%H:%M 2>/dev/null)"
@@ -753,6 +753,7 @@ end_screen() {
     fi
     set -e
   done
+  set -e
   printf '\033[?25h\n'
   printf '  Panel closed. The worker is still running: it starts on boot and survives this.\n'
   printf '  To stop the worker: sudo systemctl stop k3s-agent && sudo systemctl disable k3s-agent\n\n'

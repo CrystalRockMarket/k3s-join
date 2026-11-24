@@ -27,8 +27,8 @@ trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/root"
 cp -a site/. "$STAGE/root/"
 cp install.sh install-macos.sh install.ps1 "$STAGE/root/"
-cp install.sh "$STAGE/root/install-1.8.1.sh"
-cp install-macos.sh "$STAGE/root/install-macos-1.8.1.sh"
+cp install.sh "$STAGE/root/install-1.8.2.sh"
+cp install-macos.sh "$STAGE/root/install-macos-1.8.2.sh"
 mkdir -p "$STAGE/root/docs"
 cp docs/*.md "$STAGE/root/docs/" 2>/dev/null || true
 chmod 0644 "$STAGE"/root/install*.sh "$STAGE"/root/install.ps1

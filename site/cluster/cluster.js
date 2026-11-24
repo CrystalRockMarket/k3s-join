@@ -70,7 +70,7 @@
         document.getElementById("s-nodes").textContent = joined.length ? (online + " / " + joined.length)
           : (d.active_nodes + " / " + d.nodes.length);
         document.getElementById("s-total").textContent = fmt(d.total_points);
-        document.getElementById("s-24h").textContent = fmt(d.points_10m);
+        document.getElementById("s-24h").textContent = fmt(d.points_24h != null ? d.points_24h : d.points_10m);
         var known = {};
       d.nodes.forEach(function (n) { known[n.node] = true; });
       (d.joined || []).forEach(function (j) {
@@ -85,7 +85,7 @@
           var art = n.role === "volunteer" ? "laptop.svg" : "worker.svg";
           return '<tr class="' + (fresh ? "row-new" : "") + '">' +
             '<td class="worker-cell">' +
-            "<strong>" + n.node + "</strong>" + + "</td>" +
+            "<strong>" + n.node + "</strong></td>" +
             "<td>" + (n.role === "volunteer" ? "volunteer" : "dedicated") + "</td>" +
             "<td>" + (n.pending ? '<span class="pill">pending · no work yet</span>'
                      : fresh ? '<span class="pill">just joined</span>' : "online") + "</td>" +
