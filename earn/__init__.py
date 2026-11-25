@@ -47,9 +47,13 @@ def create_app(config: Config | None = None) -> Flask:
             number = float(value or 0)
         except (TypeError, ValueError):
             return "0"
-        if abs(number - round(number)) < 0.05:
+        if number == 0:
+            return "0"
+        if abs(number) < 1:
+            return f"{number:,.4f}"
+        if abs(number - round(number)) < 0.005:
             return f"{int(round(number)):,}"
-        return f"{number:,.1f}"
+        return f"{number:,.2f}"
 
     @app.template_filter("day")
     def _day(value):

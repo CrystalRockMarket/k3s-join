@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Points — k3s.kituwa.com</title>
-<meta name="description" content="Kituwa Compute Points: one point per 100 CPU-seconds of work, earned by every machine on the cluster — including yours, while it is idle.">
+<meta name="description" content="Kituwa Compute Points: one point per 384 CPU-hours of work, and one point is $1 of Kituwa credit, earned by every machine on the cluster — including yours, while it is idle.">
 <link rel="canonical" href="https://k3s.kituwa.com/points/">
 <meta property="og:title" content="Kituwa Compute Points — the cluster keeps score">
-<meta property="og:description" content="Live measured work. One point per 100 CPU-seconds. Your machine joins this chart when it is idle.">
+<meta property="og:description" content="Live measured work. One point per 384 CPU-hours, worth $1 of Kituwa credit. Your machine joins this chart when it is idle.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://k3s.kituwa.com/points/">
 <meta property="og:image" content="https://k3s.kituwa.com/og-image.png">
@@ -37,8 +37,8 @@
   <section class="hero">
     <p class="eyebrow">Kituwa Compute Points</p>
     <h1>The cluster keeps score.</h1>
-    <p class="lede">Every 100 CPU-seconds of real work on this cluster becomes a
-      point. <strong>trinity-nc-server</strong> has been earning them since the first
+    <p class="lede">Every 384 CPU-hours of measured work becomes one point, worth $1 of
+      Kituwa credit. <strong>trinity-nc-server</strong> has been earning them since the first
       commit — and when your machine joins, its work lands on this same chart.</p>
     <div class="score">
       <span class="score-number" id="total">—</span>
@@ -120,7 +120,9 @@
       </article>
       <article class="card">
         <h3>Points are proportional</h3>
-        <p>One point is 100 CPU-seconds, credited to the machine that spent it. Give
+        <p>One point is 384 CPU-hours of measured work, credited to the machine that
+           spent it, and is worth $1 of Kituwa credit. A fully busy 16-thread
+           desktop caps at about $1/day; a 2-thread laptop at about $0.125/day. Give
            <strong>10% of the work and you earn 10% of the points</strong>; give ten
            times the work and you earn ten times the points. No bonus is based on
            who you are, when you joined, or how many machines you run — only on
@@ -132,7 +134,7 @@
       <article class="card">
         <h3>What counts</h3>
         <dl class="points-table">
-          <div><dt>1 point</dt><dd>100 CPU-seconds of measured Kituwa work</dd></div>
+          <div><dt>1 point</dt><dd>384 CPU-hours of measured work, worth $1 of credit</dd></div>
           <div><dt>Bonuses</dt><dd>none — only measured work counts</dd></div>
           <div><dt>Idle rule</dt><dd>volunteers earn only while idle; dedicated workers always</dd></div>
         </dl>

@@ -166,7 +166,7 @@ def _cluster_data() -> dict:
         "total_points": snapshot.get("total_points", 0),
         "generated_at": snapshot.get("generated_at", ""),
         "rule": snapshot.get(
-            "rule", "1 point = 100 CPU-seconds of Kituwa work"
+            "rule", "1 point = $1 of Kituwa credit; 1 point per 384 CPU-hours of measured work"
         ),
     }
 

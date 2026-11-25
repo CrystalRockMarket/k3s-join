@@ -58,6 +58,38 @@
   {% endif %}
 </section>
 
+<section class="band" aria-labelledby="chart-h">
+  <div class="section-head">
+    <div>
+      <h2 id="chart-h">Points earned by machine</h2>
+      <p class="note">1 point = $1 of Kituwa credit. A fully busy 16-thread
+        desktop caps at about $1/day; a 2-thread laptop at about $0.125/day.</p>
+    </div>
+    <div class="tabs small" role="tablist" aria-label="Chart range" id="earn-range">
+      <button role="tab" data-range="1d" aria-selected="false">1 day</button>
+      <button role="tab" data-range="7d" aria-selected="true">7 days</button>
+      <button role="tab" data-range="30d" aria-selected="false">30 days</button>
+      <button role="tab" data-range="90d" aria-selected="false">90 days</button>
+      <button role="tab" data-range="1y" aria-selected="false">1 year</button>
+    </div>
+  </div>
+  <div id="earn-chart" class="chart" data-state="loading">
+    <p class="note">Reading the published snapshot…</p>
+  </div>
+  <p class="note" id="earn-chart-note">Live snapshot; the page stays readable if the
+    worker is offline.</p>
+  <dl class="facts four">
+    <div><dt>16 threads, full load</dt><dd>~$1.00/day</dd></div>
+    <div><dt>8 threads, full load</dt><dd>~$0.50/day</dd></div>
+    <div><dt>2 threads, full load</dt><dd>~$0.125/day</dd></div>
+    <div><dt>In use or idle</dt><dd>$0 while not earning</dd></div>
+  </dl>
+  <p class="note">These are caps, not guarantees: the machine earns only for
+    measured work the cluster actually schedules on it. A laptop that is being
+    used earns nothing, which is why its line can stay almost flat.</p>
+
+</section>
+
 <section class="band" aria-labelledby="rewards-h">
   <h2 id="rewards-h">Redeem for Premium</h2>
   <div class="grid three">
@@ -123,7 +155,7 @@
       <a class="small-link" href="/earn/premium/">Member page</a>
     {% else %}
       <p>No premium time yet. A 30-day redemption is
-        {{ premium30.cost_points|pts if premium30 else "7,000" }} points.</p>
+        {{ premium30.cost_points|pts if premium30 else "7" }} points.</p>
       <a class="small-link" href="/earn/redeem/premium-30/">See Premium</a>
     {% endif %}
   </aside>
@@ -140,7 +172,7 @@
         <tr>
           <td>{{ row.created_at|day }}</td>
           <td>{{ row.memo }}{% if row.node %} <code>{{ row.node }}</code>{% endif %}</td>
-          <td class="num {{ 'plus' if row.points > 0 else 'minus' }}">{{ "%+d"|format(row.points|round|int) }}</td>
+          <td class="num {{ 'plus' if row.points > 0 else 'minus' }}">{{ row.points|pts }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -152,3 +184,4 @@
   {% endif %}
 </section>
 {% endblock %}
+{% block scripts %}<script defer src="{{ url_for('static', filename='earn-chart.js') }}"></script>{% endblock %}

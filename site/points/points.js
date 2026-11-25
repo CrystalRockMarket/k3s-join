@@ -17,7 +17,13 @@
     if (n == null) { return "—"; }
     if (n >= 1e6) { return (n / 1e6).toFixed(2) + "M"; }
     if (n >= 1e4) { return Math.round(n / 1e3) + "k"; }
-    // Two decimals: a volunteer's first minutes are real fractions.
+    // Points are dollars now. Show four decimals under $1 so a laptop's
+    // first cents do not render as 0.00.
+    if (Math.abs(n) < 1) {
+      return Number(n).toLocaleString("en-US", {
+        minimumFractionDigits: 4, maximumFractionDigits: 4
+      });
+    }
     return Number(n).toLocaleString("en-US", {
       minimumFractionDigits: 2, maximumFractionDigits: 2
     });

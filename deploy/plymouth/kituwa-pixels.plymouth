@@ -1,0 +1,56 @@
+[Plymouth Theme]
+Name=Kituwa Pixels
+Description=The Kituwa pixel mark on black, with a centred boot progress bar.
+ModuleName=two-step
+
+[two-step]
+Font=Cantarell 12
+TitleFont=Cantarell Light 30
+ImageDir=/usr/share/plymouth/themes/kituwa-pixels
+DialogHorizontalAlignment=.5
+DialogVerticalAlignment=.65
+TitleHorizontalAlignment=.5
+TitleVerticalAlignment=.65
+HorizontalAlignment=.5
+VerticalAlignment=.44
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.96
+Transition=none
+TransitionDuration=0.0
+BackgroundStartColor=0x000000
+BackgroundEndColor=0x000000
+ProgressBarBackgroundColor=0x161a1f
+ProgressBarForegroundColor=0xb8f24a
+MessageBelowAnimation=true
+
+[boot-up]
+UseEndAnimation=false
+UseProgressBar=true
+ProgressBarShowPercentComplete=false
+
+[shutdown]
+UseEndAnimation=false
+
+[reboot]
+UseEndAnimation=false
+
+[updates]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Installing Updates...
+SubTitle=Do not turn off your computer
+
+[system-upgrade]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Upgrading System...
+SubTitle=Do not turn off your computer
+
+[firmware-upgrade]
+SuppressMessages=true
+ProgressBarShowPercentComplete=true
+UseProgressBar=true
+Title=Upgrading Firmware...
+SubTitle=Do not turn off your computer

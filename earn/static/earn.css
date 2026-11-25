@@ -144,3 +144,14 @@
   .earn-body .top { flex-wrap: wrap; }
   .earn-body .top-nav { flex-wrap: wrap; gap: .5rem .9rem; }
 }
+
+/* Live per-machine chart on Earn. */
+.earn-body .chart { min-height: 300px; }
+.earn-body .chart svg { width: 100%; height: auto; display: block; }
+.earn-body .chart-legend {
+  display: flex; flex-wrap: wrap; gap: .8rem; margin-top: .55rem;
+  font-family: var(--mono); font-size: .76rem; color: var(--muted);
+}
+.earn-body .legend-item { display: inline-flex; align-items: center; gap: .35rem; }
+.earn-body .legend-item i { width: .55rem; height: .55rem; border-radius: 50%; display: inline-block; }
+.earn-body #earn-range { margin: 0; }

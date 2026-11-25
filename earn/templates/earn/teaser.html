@@ -5,8 +5,8 @@
   <p class="eyebrow">Kituwa Cluster · Earn</p>
   <h1>Your idle machine,<br>premium time on our sites.</h1>
   <p class="lede">
-    Join the cluster with a worker node, create an account, and every 100 CPU-seconds
-    of real Kituwa work becomes points. Redeem them for
+    Join the cluster with a worker node, create an account, and every 384 CPU-hours
+    of measured work becomes one point — worth $1 of Kituwa credit. A fully busy 16-thread desktop caps at about $1/day; a 2-thread laptop at about $0.125/day. Redeem them for
     <strong>Kituwa Premium</strong> — the member briefing, early access, and a
     verified subscription token for our sites, starting with SearchAll, ReferStash
     and Pixel.
@@ -29,6 +29,38 @@
     <div><dt>Points in member accounts</dt><dd>{{ stats.earned|pts }}</dd></div>
     <div><dt>Points redeemed</dt><dd>{{ stats.redeemed|pts }}</dd></div>
   </dl>
+</section>
+
+<section class="band" aria-labelledby="chart-h">
+  <div class="section-head">
+    <div>
+      <h2 id="chart-h">Points earned by machine</h2>
+      <p class="note">1 point = $1 of Kituwa credit. A fully busy 16-thread
+        desktop caps at about $1/day; a 2-thread laptop at about $0.125/day.</p>
+    </div>
+    <div class="tabs small" role="tablist" aria-label="Chart range" id="earn-range">
+      <button role="tab" data-range="1d" aria-selected="false">1 day</button>
+      <button role="tab" data-range="7d" aria-selected="true">7 days</button>
+      <button role="tab" data-range="30d" aria-selected="false">30 days</button>
+      <button role="tab" data-range="90d" aria-selected="false">90 days</button>
+      <button role="tab" data-range="1y" aria-selected="false">1 year</button>
+    </div>
+  </div>
+  <div id="earn-chart" class="chart" data-state="loading">
+    <p class="note">Reading the published snapshot…</p>
+  </div>
+  <p class="note" id="earn-chart-note">Live snapshot; the page stays readable if the
+    worker is offline.</p>
+  <dl class="facts four">
+    <div><dt>16 threads, full load</dt><dd>~$1.00/day</dd></div>
+    <div><dt>8 threads, full load</dt><dd>~$0.50/day</dd></div>
+    <div><dt>2 threads, full load</dt><dd>~$0.125/day</dd></div>
+    <div><dt>In use or idle</dt><dd>$0 while not earning</dd></div>
+  </dl>
+  <p class="note">These are caps, not guarantees: the machine earns only for
+    measured work the cluster actually schedules on it. A laptop that is being
+    used earns nothing, which is why its line can stay almost flat.</p>
+
 </section>
 
 <section class="band" aria-labelledby="how">
@@ -80,3 +112,4 @@
   </div>
 </section>
 {% endblock %}
+{% block scripts %}<script defer src="{{ url_for('static', filename='earn-chart.js') }}"></script>{% endblock %}
